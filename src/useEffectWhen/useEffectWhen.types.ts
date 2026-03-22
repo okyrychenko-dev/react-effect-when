@@ -26,7 +26,8 @@ export interface UseEffectWhenOptions<T extends DependencyList> {
   once?: boolean;
 
   /**
-   * Called every time the effect is skipped because predicate returned false.
+   * Called when deps change and predicate returns false.
+   * Stops being called after the effect runs if `once: true`.
    * Useful for debugging or analytics.
    *
    * NOTE: onSkip fires only when deps change and predicate returns false —

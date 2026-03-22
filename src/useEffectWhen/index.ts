@@ -1,7 +1,6 @@
 export { useEffectWhen } from "./useEffectWhen";
 export { predicates } from "./useEffectWhen.utils";
 export type {
-  EffectResult,
   Falsy,
   GuardPredicate,
   Predicate,

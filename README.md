@@ -118,7 +118,7 @@ Runs an effect only when `predicate(deps)` returns `true`.
 - `predicate: (deps: T) => boolean` - Condition that controls when the effect runs
 - `options?: UseEffectWhenOptions<T>`
   - `once?: boolean` - Run once after the first match or on every match
-  - `onSkip?: (deps: T) => void` - Called when dependencies change and the predicate returns `false`
+  - `onSkip?: (deps: T) => void` - Called when dependencies change and the predicate returns `false`; stops firing after the effect runs if `once: true`
 
 **Example:**
 
@@ -296,9 +296,11 @@ public documentation for package usage.
 ## Important Semantics
 
 - `predicate` and `onSkip` are stored in refs, so the hook always uses their latest version without adding them to the dependency array.
+- `once` is also kept fresh internally, so cleanup logic follows the latest option value across renders.
 - Only `deps` control when React re-runs the effect. Changing `predicate` or `onSkip` alone does not trigger a re-run.
 - `useEffectWhen` passes the current dependency tuple into `effect`.
 - `useEffectWhenReady` and `useEffectWhenTruthy` are the preferred APIs when you want narrowed values for the common built-in conditions.
+- In React Strict Mode, behavior is still scoped per mount lifecycle. A real remount is treated as a fresh hook instance.
 - Public imports are exposed from the package root. Subpath imports are not required for the documented API.
 
 ## Publish Checklist

@@ -1,10 +1,14 @@
 import { renderHook } from "@testing-library/react";
+import { createElement } from "react";
+import { StrictMode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useEffectWhen } from "../useEffectWhen";
 import { predicates } from "../useEffectWhen";
 import { useEffectWhenReady } from "../useEffectWhenReady";
 import { useEffectWhenTruthy } from "../useEffectWhenTruthy";
 import { always, pair, ready, truthy, tuple } from "./useEffectWhen.utils";
+import type { GuardPredicate } from "../useEffectWhen";
+import type { PropsWithChildren } from "react";
 
 interface TestUser {
   id: string;
@@ -266,6 +270,31 @@ describe("useEffectWhen", () => {
   });
 
   describe("typed presets", () => {
+    it("accepts a GuardPredicate directly in the base hook", () => {
+      const user = { id: "user-1" } satisfies TestUser;
+      const socket = {
+        emit: vi.fn<(event: string, payload: string) => void>(),
+      } satisfies TestSocket;
+      const isReadyPair: GuardPredicate<
+        [TestUser | null, TestSocket | null],
+        [TestUser, TestSocket]
+      > = (deps): deps is [TestUser, TestSocket] => predicates.ready(deps);
+
+      renderHook(() =>
+        useEffectWhen(
+          ([readyUser, readySocket]) => {
+            expectTypeOf(readyUser).toEqualTypeOf<TestUser>();
+            expectTypeOf(readySocket).toEqualTypeOf<TestSocket>();
+            readySocket.emit("identify", readyUser.id);
+          },
+          pair<TestUser | null, TestSocket | null>(user, socket),
+          isReadyPair
+        )
+      );
+
+      expect(socket.emit).toHaveBeenCalledWith("identify", "user-1");
+    });
+
     it("passes the current deps tuple into the base hook", () => {
       const effect = vi.fn<([value]: [number]) => void>();
 
@@ -317,40 +346,34 @@ describe("useEffectWhen", () => {
     });
   });
 
-  describe("Strict Mode resilience", () => {
-    it("once: true — does not re-run if effect was already executed (simulates double-invoke)", () => {
-      // React Strict Mode intentionally unmounts+remounts components in dev.
-      // The hasRun guard must survive unmount so the effect does NOT fire a second time.
+  describe("Strict Mode behavior", () => {
+    it("once: true — does not re-run on rerender inside Strict Mode", () => {
       const effect = vi.fn<() => void>();
+      const wrapper = ({ children }: PropsWithChildren) =>
+        createElement(StrictMode, null, children);
 
-      const { unmount } = renderHook(
+      const { rerender, unmount } = renderHook(
         ({ deps }: { deps: [string] }) => useEffectWhen(effect, deps, truthy, { once: true }),
-        { initialProps: { deps: tuple("value") } }
+        { initialProps: { deps: tuple("value") }, wrapper }
       );
 
       expect(effect).toHaveBeenCalledTimes(1);
 
-      // Simulate Strict Mode: unmount → remount with same deps
-      unmount();
-      const { unmount: unmount2 } = renderHook(
-        ({ deps }: { deps: [string] }) => useEffectWhen(effect, deps, truthy, { once: true }),
-        { initialProps: { deps: tuple("value") } }
-      );
+      rerender({ deps: tuple("next-value") });
+      expect(effect).toHaveBeenCalledTimes(1);
 
-      // hasRun is a ref local to the hook instance — each mount gets a fresh ref.
-      // This is correct: once: true means "once per mount lifecycle", not "once per app lifetime".
-      // On a fresh mount, the effect should run again.
-      expect(effect).toHaveBeenCalledTimes(2);
-      unmount2();
+      unmount();
     });
 
-    it("once: false — cleanup is called exactly once per dep change, not twice", () => {
+    it("once: false — cleanup is called once before each re-run in Strict Mode", () => {
       const cleanup = vi.fn<() => void>();
       const effect = vi.fn<() => () => void>().mockReturnValue(cleanup);
+      const wrapper = ({ children }: PropsWithChildren) =>
+        createElement(StrictMode, null, children);
 
       const { rerender } = renderHook(
         ({ deps }: { deps: [number] }) => useEffectWhen(effect, deps, truthy, { once: false }),
-        { initialProps: { deps: tuple(1) } }
+        { initialProps: { deps: tuple(1) }, wrapper }
       );
 
       expect(effect).toHaveBeenCalledTimes(1);
@@ -358,7 +381,6 @@ describe("useEffectWhen", () => {
 
       rerender({ deps: [2] });
 
-      // React calls the previous return fn — cleanup must be called exactly once
       expect(cleanup).toHaveBeenCalledTimes(1);
       expect(effect).toHaveBeenCalledTimes(2);
 

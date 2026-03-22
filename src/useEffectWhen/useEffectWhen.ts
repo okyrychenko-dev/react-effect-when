@@ -59,16 +59,17 @@ export function useEffectWhen<T extends DependencyList>(
   { once = true, onSkip }: UseEffectWhenOptions<T> = {}
 ): void {
   const hasRun = useRef<boolean>(false);
-  const cleanupRef = useRef<(() => void) | undefined>(undefined);
 
   const predicateRef = useRef<Predicate<T>>(predicate);
+  const onceRef = useRef<boolean>(once);
   const onSkipRef = useRef<UseEffectWhenOptions<T>["onSkip"]>(onSkip);
 
   predicateRef.current = predicate;
+  onceRef.current = once;
   onSkipRef.current = onSkip;
 
   useEffect(() => {
-    if (once && hasRun.current) {
+    if (onceRef.current && hasRun.current) {
       return;
     }
 
@@ -79,17 +80,14 @@ export function useEffectWhen<T extends DependencyList>(
 
     hasRun.current = true;
 
-    const rawCleanup = effect(deps);
-
-    cleanupRef.current = typeof rawCleanup === "function" ? rawCleanup : undefined;
+    const cleanup = effect(deps);
 
     return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-        cleanupRef.current = undefined;
+      if (cleanup) {
+        cleanup();
       }
 
-      if (!once) {
+      if (!onceRef.current) {
         hasRun.current = false;
       }
     };
