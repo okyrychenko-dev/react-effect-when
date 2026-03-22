@@ -1,0 +1,50 @@
+# Source files
+src/
+tsconfig.json
+tsconfig.test.json
+tsup.config.ts
+vitest.config.ts
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Tests
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+coverage/
+
+# Examples
+examples/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# Misc
+.DS_Store
+*.tsbuildinfo
+.cache/
+
+# ESLint and Prettier
+.eslintrc*
+.prettierrc*
+eslint.config.mjs
