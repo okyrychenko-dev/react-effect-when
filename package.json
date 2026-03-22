@@ -1,0 +1,86 @@
+{
+  "name": "@okyrychenko-dev/react-effect-when",
+  "version": "1.0.0",
+  "description": "A universal React hook that runs an effect only when a predicate is satisfied",
+  "keywords": [
+    "react",
+    "hook",
+    "useEffect",
+    "predicate",
+    "typescript"
+  ],
+  "homepage": "https://github.com/okyrychenko-dev/react-effect-when#readme",
+  "bugs": {
+    "url": "https://github.com/okyrychenko-dev/react-effect-when/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okyrychenko-dev/react-effect-when"
+  },
+  "license": "MIT",
+  "author": "Oleksii Kyrychenko alexey.kirichenko@gmail.com",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "release:check": "npm run clean && npm run test:run && npm run typecheck && npm run lint && npm run format:check && npm run build",
+    "prepublishOnly": "npm run release:check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "npm run lint && prettier --check \"src/**/*.{ts,tsx}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "@vitest/coverage-v8": "^4.0.9",
+    "@vitest/ui": "^4.0.9",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "happy-dom": "^20.0.10",
+    "prettier": "^3.6.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^4.0.9"
+  }
+}
