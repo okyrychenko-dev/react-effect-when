@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/@okyrychenko-dev/react-effect-when.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-effect-when)
 [![npm downloads](https://img.shields.io/npm/dm/@okyrychenko-dev/react-effect-when.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-effect-when)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/okyrychenko-dev/react-effect-when/actions/workflows/ci.yml/badge.svg)](https://github.com/okyrychenko-dev/react-effect-when/actions)
 
 > Run React effects only when dependencies reach the state you actually care about
 

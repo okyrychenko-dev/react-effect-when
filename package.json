@@ -1,6 +1,6 @@
 {
   "name": "@okyrychenko-dev/react-effect-when",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A universal React hook that runs an effect only when a predicate is satisfied",
   "keywords": [
     "react",
