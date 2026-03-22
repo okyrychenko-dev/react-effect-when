@@ -4,16 +4,43 @@
 [![npm downloads](https://img.shields.io/npm/dm/@okyrychenko-dev/react-effect-when.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-effect-when)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> Run React effects only when dependencies reach the state you actually care about
+> Declarative control over when React effects actually fire, especially when Strict Mode makes development noisy
 
-`react-effect-when` helps you remove repeated guard boilerplate from `useEffect`, wait for meaningful dependency states, and keep effect intent readable when timing matters.
+`react-effect-when` helps you run effects only when dependencies reach the state you actually care about. Its main value is reducing development noise from React Strict Mode without disabling `StrictMode`, while also removing repeated `useRef` guards and `if`-based effect boilerplate.
+
+## What Problem It Solves
+
+In real apps, many effects are not meant to run "on every mount-like moment". They should run only when something meaningful becomes true:
+
+- a user and socket are both ready
+- a modal is actually open
+- analytics should fire once
+- a subscription should start only after auth is available
+
+In development, React Strict Mode can make those flows noisy by intentionally re-mounting and re-running effects. Teams often respond by:
+
+- disabling Strict Mode
+- adding ad hoc `useRef(false)` guards
+- pushing conditional logic deep inside `useEffect`
+
+`react-effect-when` gives you a cleaner option: keep Strict Mode on, but express effect timing declaratively.
+
+## Main Goals
+
+- Reduce Strict Mode effect noise in development without turning Strict Mode off
+- Replace repetitive `useRef` guards and early-return boilerplate with a declarative API
+- Run effects only when dependencies are actually ready, truthy, or match a custom predicate
+- Keep effect intent readable at the call site instead of hiding conditions inside the effect body
+- Preserve predictable cleanup behavior and a familiar React mental model
+- Provide strong TypeScript support for readiness and predicate-based narrowing
 
 ## Why Use It
 
 - Run an effect only when `predicate(deps)` becomes true
 - Avoid repeating `if (!user || !socket) return` across components
+- Reduce extra development noise around initialization, analytics, sockets, and one-time side effects
 - Re-run only on meaningful matches with `once: false`
-- Use `useEffectWhenReady` and `useEffectWhenTruthy` for the common typed cases
+- Use `useEffectWhenReady` and `useEffectWhenTruthy` for common typed cases
 - Keep public imports simple through the root package API
 
 ## Installation
@@ -49,6 +76,20 @@ function Dashboard() {
 }
 ```
 
+## Strict Mode In Development
+
+This library is especially useful when you want development to feel closer to production for side effects that should not create extra noise.
+
+Common examples:
+
+- WebSocket or channel initialization
+- analytics and tracking calls
+- one-time setup effects
+- notifications and toasts
+- effects that should wait for fully ready data
+
+The goal is not to fight React or replace `useEffect`. The goal is to make effect timing explicit and convenient in the cases where plain `useEffect` becomes noisy or repetitive.
+
 ## Core Concepts
 
 - `useEffectWhen` is the base hook. It receives the current dependency tuple and runs only when your predicate returns `true`.
@@ -59,6 +100,10 @@ function Dashboard() {
 - `predicates.ready`, `predicates.truthy`, and `predicates.always` are reusable building blocks for the base hook.
 
 ## Core Use Cases
+
+### Reduce Strict Mode dev noise
+
+Use `useEffectWhen` when a side effect should run only after a meaningful condition is satisfied instead of reacting to every mount-like development cycle.
 
 ### Wait for async readiness
 
@@ -83,6 +128,48 @@ Use `once: false` when you want the effect to run every time a threshold or cond
 | Access current deps tuple in the callback | Manual closure usage            | Varies                | Built-in                             |
 | Observe skipped states                    | Manual logging                  | Rare                  | `onSkip`                             |
 | Root-level simple public API              | Native React only               | Varies                | Yes                                  |
+
+## Key Benefits
+
+- Clear intent: the condition for running the effect is visible at the call site
+- Less boilerplate: fewer manual refs, flags, and nested guards
+- Better dev ergonomics: less Strict Mode noise without turning Strict Mode off
+- Familiar semantics: still built on top of normal React effect behavior
+- Typed readiness helpers: better safety when dependencies become available
+
+## When To Use It
+
+- You want to reduce React Strict Mode double-invoke noise during development
+- Your `useEffect` usually starts with guards like `if (!user || !socket) return`
+- You would otherwise add `useRef` flags just to prevent effect running twice in development
+- Your effect should wait until values are ready, truthy, or match a custom predicate
+- You want cleanup behavior to stay explicit while the trigger condition stays readable
+
+## When Not To Use It
+
+- A plain `useEffect` already expresses the behavior clearly
+- The effect should always run for every dependency change with no gating
+- The condition belongs in derived state or render logic rather than in an effect
+- You are trying to bypass real remount semantics or "fix" React Strict Mode globally
+
+## Why Not Just Use `useEffect` + `if` + `useRef`
+
+You can. For a one-off case, that is often fine.
+
+The problem appears when the same pattern repeats across a codebase:
+
+- `if` guards hide the real trigger condition inside the effect body
+- `useRef(false)` flags add boilerplate and are easy to get wrong
+- intent becomes inconsistent from component to component
+- Strict Mode double invoke pain gets handled with ad hoc local workarounds
+
+`react-effect-when` gives that pattern one explicit API instead of many custom versions.
+
+## Important Boundary
+
+This library does not disable React Strict Mode, patch React behavior, or guarantee perfectly identical production behavior in every scenario.
+
+What it does is make effect timing explicit and ergonomic in the cases where you want to reduce unnecessary development noise and avoid repeating local guard logic.
 
 ## API Reference
 
@@ -215,6 +302,71 @@ useEffectWhen(
   }
 );
 ```
+
+## Real-World Examples
+
+### Prevent analytics from firing twice in development
+
+```tsx
+import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
+
+function ProductPage({ productId, isReady }: { productId: string; isReady: boolean }) {
+  useEffectWhen(
+    ([id]) => {
+      analytics.track("product_view", { productId: id });
+    },
+    [productId, isReady],
+    ([, ready]) => ready === true
+  );
+}
+```
+
+This is a common React Strict Mode double-invoke pain point in development when analytics should fire only after the page is actually ready.
+
+### Initialize a WebSocket only when auth is ready
+
+```tsx
+import { useEffectWhenReady } from "@okyrychenko-dev/react-effect-when";
+
+function RealtimeConnection({
+  userId,
+  authToken,
+}: {
+  userId: string | null;
+  authToken: string | null;
+}) {
+  useEffectWhenReady(
+    ([readyUserId, readyToken]) => {
+      const socket = connectSocket({ userId: readyUserId, token: readyToken });
+
+      return () => {
+        socket.close();
+      };
+    },
+    [userId, authToken]
+  );
+}
+```
+
+This keeps WebSocket setup declarative and avoids scattering `if (!userId || !authToken) return` checks through the effect body.
+
+### Show a toast only when a modal actually opens
+
+```tsx
+import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
+
+function Modal({ isOpen }: { isOpen: boolean }) {
+  useEffectWhen(
+    ([open]) => {
+      toast.info("Modal opened");
+    },
+    [isOpen],
+    ([open]) => open === true
+  );
+}
+```
+
+This is useful when development re-mounts would otherwise create extra toast or notification noise.
 
 ## More Examples
 

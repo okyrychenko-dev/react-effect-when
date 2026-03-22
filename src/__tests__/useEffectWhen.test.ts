@@ -51,19 +51,19 @@ function setup<T extends ReadonlyArray<unknown>>(
 
 describe("useEffectWhen", () => {
   describe("once: true (default)", () => {
-    it("does not run effect when predicate returns false on mount", () => {
+    it("should not run effect when predicate returns false on mount", () => {
       const { effect } = setup([null], ready);
       expect(effect).not.toHaveBeenCalled();
     });
 
-    it("runs effect exactly once when predicate first returns true", () => {
+    it("should run effect exactly once when predicate first returns true", () => {
       const { effect, rerender } = setup(tuple<string | null>(null), ready);
 
       rerender(["ready"]);
       expect(effect).toHaveBeenCalledTimes(1);
     });
 
-    it("does not re-run effect on subsequent dep changes after first run", () => {
+    it("should not re-run effect on subsequent dep changes after first run", () => {
       const { effect, rerender } = setup(tuple("a"), truthy);
 
       expect(effect).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledTimes(1);
     });
 
-    it("does not re-run if deps toggle back to falsy then truthy again", () => {
+    it("should not re-run if deps toggle back to falsy then truthy again", () => {
       const { effect, rerender } = setup(tuple<string | null>("hello"), truthy);
       expect(effect).toHaveBeenCalledTimes(1);
 
@@ -82,13 +82,13 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledTimes(1);
     });
 
-    it("calls cleanup on unmount", () => {
+    it("should call cleanup on unmount", () => {
       const { cleanup, unmount } = setup(["value"], truthy);
       unmount();
       expect(cleanup).toHaveBeenCalledTimes(1);
     });
 
-    it("does not call cleanup if effect never ran", () => {
+    it("should not call cleanup if effect never ran", () => {
       const { cleanup, unmount } = setup([null], ready);
       unmount();
       expect(cleanup).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe("useEffectWhen", () => {
   });
 
   describe("once: false", () => {
-    it("re-runs effect every time predicate becomes true", () => {
+    it("should re-run effect every time predicate becomes true", () => {
       const { effect, rerender } = setup(tuple(0), ([n]) => n > 10, { once: false });
 
       expect(effect).not.toHaveBeenCalled();
@@ -109,7 +109,7 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledTimes(2);
     });
 
-    it("calls previous cleanup before re-running effect", () => {
+    it("should call previous cleanup before re-running effect", () => {
       const cleanup1 = vi.fn<() => void>();
       const cleanup2 = vi.fn<() => void>();
       const effect = vi.fn<() => void | (() => void)>();
@@ -136,7 +136,7 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledTimes(2);
     });
 
-    it("calls last cleanup on unmount", () => {
+    it("should call last cleanup on unmount", () => {
       const { cleanup, unmount } = setup(tuple(1), ([n]) => n > 0, { once: false });
 
       unmount();
@@ -145,7 +145,7 @@ describe("useEffectWhen", () => {
   });
 
   describe("onSkip", () => {
-    it("calls onSkip when predicate returns false", () => {
+    it("should call onSkip when predicate returns false", () => {
       const onSkip = vi.fn<(deps: [string | null]) => void>();
 
       setup(tuple<string | null>(null), ready, { onSkip });
@@ -153,7 +153,7 @@ describe("useEffectWhen", () => {
       expect(onSkip).toHaveBeenCalledWith([null]);
     });
 
-    it("calls onSkip only when deps change and predicate is false (useEffect semantics)", () => {
+    it("should call onSkip only when deps change and predicate is false (useEffect semantics)", () => {
       const onSkip = vi.fn<(deps: [string | null]) => void>();
       const { rerender } = setup(tuple<string | null>(null), ready, { onSkip });
 
@@ -170,7 +170,7 @@ describe("useEffectWhen", () => {
       expect(onSkip).toHaveBeenCalledTimes(1);
     });
 
-    it("does not call onSkip after effect has run (once: true)", () => {
+    it("should not call onSkip after effect has run (once: true)", () => {
       const onSkip = vi.fn<(deps: [string | null]) => void>();
       const { rerender } = setup(tuple<string | null>(null), ready, { onSkip });
 
@@ -181,7 +181,7 @@ describe("useEffectWhen", () => {
       expect(onSkip).toHaveBeenCalledTimes(1);
     });
 
-    it("uses latest onSkip reference without stale closure", () => {
+    it("should use the latest onSkip reference without stale closure", () => {
       const onSkip1 = vi.fn<(deps: [string | null]) => void>();
       const onSkip2 = vi.fn<(deps: [string | null]) => void>();
 
@@ -204,7 +204,7 @@ describe("useEffectWhen", () => {
       expect(onSkip1).toHaveBeenCalledTimes(1); // not called again
     });
 
-    it("uses latest onSkip when deps change after ref update", () => {
+    it("should use the latest onSkip when deps change after ref update", () => {
       const onSkip1 = vi.fn<(deps: [number]) => void>();
       const onSkip2 = vi.fn<(deps: [number]) => void>();
 
@@ -230,7 +230,7 @@ describe("useEffectWhen", () => {
   });
 
   describe("predicate ref stability", () => {
-    it("uses latest predicate reference when deps change", () => {
+    it("should use the latest predicate reference when deps change", () => {
       const effect = vi.fn<() => void>();
       let threshold = 5;
 
@@ -250,7 +250,7 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledTimes(1);
     });
 
-    it("does NOT re-evaluate predicate when deps stay the same", () => {
+    it("should not re-evaluate predicate when deps stay the same", () => {
       const effect = vi.fn<() => void>();
       let threshold = 5;
 
@@ -270,7 +270,7 @@ describe("useEffectWhen", () => {
   });
 
   describe("typed presets", () => {
-    it("accepts a GuardPredicate directly in the base hook", () => {
+    it("should accept a GuardPredicate directly in the base hook", () => {
       const user = { id: "user-1" } satisfies TestUser;
       const socket = {
         emit: vi.fn<(event: string, payload: string) => void>(),
@@ -295,7 +295,7 @@ describe("useEffectWhen", () => {
       expect(socket.emit).toHaveBeenCalledWith("identify", "user-1");
     });
 
-    it("passes the current deps tuple into the base hook", () => {
+    it("should pass the current deps tuple into the base hook", () => {
       const effect = vi.fn<([value]: [number]) => void>();
 
       renderHook(() =>
@@ -311,7 +311,7 @@ describe("useEffectWhen", () => {
       expect(effect).toHaveBeenCalledWith([7]);
     });
 
-    it("narrows deps for useEffectWhenReady", () => {
+    it("should narrow deps for useEffectWhenReady", () => {
       const user = { id: "user-1" } satisfies TestUser;
       const socket = {
         emit: vi.fn<(event: string, payload: string) => void>(),
@@ -332,7 +332,7 @@ describe("useEffectWhen", () => {
       expect(socket.emit).toHaveBeenCalledWith("identify", "user-1");
     });
 
-    it("narrows deps for useEffectWhenTruthy", () => {
+    it("should narrow deps for useEffectWhenTruthy", () => {
       renderHook(() =>
         useEffectWhenTruthy(
           ([token, count, enabled]) => {
@@ -347,7 +347,7 @@ describe("useEffectWhen", () => {
   });
 
   describe("Strict Mode behavior", () => {
-    it("once: true — does not re-run on rerender inside Strict Mode", () => {
+    it("should not re-run on rerender inside Strict Mode when once is true", () => {
       const effect = vi.fn<() => void>();
       const wrapper = ({ children }: PropsWithChildren) =>
         createElement(StrictMode, null, children);
@@ -365,7 +365,7 @@ describe("useEffectWhen", () => {
       unmount();
     });
 
-    it("once: false — cleanup is called once before each re-run in Strict Mode", () => {
+    it("should call cleanup once before each re-run in Strict Mode when once is false", () => {
       const cleanup = vi.fn<() => void>();
       const effect = vi.fn<() => () => void>().mockReturnValue(cleanup);
       const wrapper = ({ children }: PropsWithChildren) =>
@@ -392,51 +392,51 @@ describe("useEffectWhen", () => {
 
   describe("predicates", () => {
     describe("predicates.ready", () => {
-      it("returns false for null", () => {
+      it("should return false for null", () => {
         expect(predicates.ready([null])).toBe(false);
       });
 
-      it("returns false for undefined", () => {
+      it("should return false for undefined", () => {
         expect(predicates.ready([undefined])).toBe(false);
       });
 
-      it("returns true for false (boolean is a valid value)", () => {
+      it("should return true for false because boolean false is a valid value", () => {
         expect(predicates.ready([false])).toBe(true);
       });
 
-      it("returns true for 0", () => {
+      it("should return true for 0", () => {
         expect(predicates.ready([0])).toBe(true);
       });
 
-      it("returns true for non-null values", () => {
+      it("should return true for non-null values", () => {
         expect(predicates.ready(["hello", 42, {}, []])).toBe(true);
       });
 
-      it("returns false when any dep is null", () => {
+      it("should return false when any dep is null", () => {
         expect(predicates.ready(["hello", null])).toBe(false);
       });
     });
 
     describe("predicates.truthy", () => {
-      it("returns false for false", () => {
+      it("should return false for false", () => {
         expect(predicates.truthy([false])).toBe(false);
       });
 
-      it("returns false for 0", () => {
+      it("should return false for 0", () => {
         expect(predicates.truthy([0])).toBe(false);
       });
 
-      it("returns false for empty string", () => {
+      it("should return false for empty string", () => {
         expect(predicates.truthy([""])).toBe(false);
       });
 
-      it("returns true when all deps are truthy", () => {
+      it("should return true when all deps are truthy", () => {
         expect(predicates.truthy([1, "hello", true, {}])).toBe(true);
       });
     });
 
     describe("predicates.always", () => {
-      it("always returns true regardless of deps", () => {
+      it("should always return true regardless of deps", () => {
         expect(predicates.always([null, undefined, false, 0, ""])).toBe(true);
         expect(predicates.always([])).toBe(true);
       });

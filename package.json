@@ -1,13 +1,23 @@
 {
   "name": "@okyrychenko-dev/react-effect-when",
-  "version": "1.0.2",
-  "description": "A universal React hook that runs an effect only when a predicate is satisfied",
+  "version": "1.0.3",
+  "description": "Declarative conditional effects for React with less Strict Mode noise in development",
   "keywords": [
     "react",
     "hook",
-    "useEffect",
+    "useeffect",
+    "strict-mode",
+    "strictmode",
+    "double-invoke",
+    "double-render",
+    "effect",
+    "conditional-effect",
+    "useeffect-strict-mode",
+    "useeffect-guard",
     "predicate",
-    "typescript"
+    "typescript",
+    "react-hooks",
+    "development"
   ],
   "homepage": "https://github.com/okyrychenko-dev/react-effect-when#readme",
   "bugs": {

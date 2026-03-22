@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2026-03-23
+
+### Changed
+- Repositioned the README around the main library value: reducing React Strict Mode development noise with declarative effect timing
+- Added clearer guidance for when to use the library, when not to use it, and why it helps over ad hoc `useEffect` plus `useRef` guards
+- Added real-world documentation examples for analytics, WebSocket initialization, and modal/toast scenarios
+- Updated package description and keywords to better reflect the Strict Mode and conditional effects use cases
+- Bumped the package version to `1.0.3`
+
 ## [1.0.2] - 2026-03-22
 
 ### Fixed
