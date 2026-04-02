@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-04-02
+
+### Added
+- Added `createEffectWhen(predicate)` for building reusable predicate-based effect hooks
+- Added support for guard-predicate factories so created hooks preserve narrowed dependency types inside `effect`
+
+### Changed
+- Expanded the README with `createEffectWhen` documentation, including reusable-hook and type-narrowing examples
+- Aligned examples so narrowing is shown only in guard-based scenarios
+- Simplified test helpers and updated test coverage to exercise real predicate paths without test-only predicate wrappers
+
 ## [1.0.3] - 2026-03-23
 
 ### Changed

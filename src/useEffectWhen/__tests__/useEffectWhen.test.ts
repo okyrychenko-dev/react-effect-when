@@ -2,13 +2,13 @@ import { renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { StrictMode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { useEffectWhen } from "../useEffectWhen";
-import { predicates } from "../useEffectWhen";
-import { useEffectWhenReady } from "../useEffectWhenReady";
-import { useEffectWhenTruthy } from "../useEffectWhenTruthy";
-import { always, pair, ready, truthy, tuple } from "./useEffectWhen.utils";
-import type { GuardPredicate } from "../useEffectWhen";
-import type { PropsWithChildren } from "react";
+import { useEffectWhen } from "../../useEffectWhen";
+import { predicates } from "../../useEffectWhen";
+import { useEffectWhenReady } from "../../useEffectWhenReady";
+import { useEffectWhenTruthy } from "../../useEffectWhenTruthy";
+import { pair, tuple } from "./useEffectWhen.utils";
+import type { GuardPredicate } from "../../useEffectWhen";
+import type { DependencyList, PropsWithChildren } from "react";
 
 interface TestUser {
   id: string;
@@ -17,6 +17,10 @@ interface TestUser {
 interface TestSocket {
   emit: (event: string, payload: string) => void;
 }
+
+const ready = (deps: DependencyList): boolean => predicates.ready(deps);
+const truthy = (deps: DependencyList): boolean => predicates.truthy(deps);
+const always = (deps: DependencyList): boolean => predicates.always(deps);
 
 function setup<T extends ReadonlyArray<unknown>>(
   initialDeps: T,
@@ -272,8 +276,9 @@ describe("useEffectWhen", () => {
   describe("typed presets", () => {
     it("should accept a GuardPredicate directly in the base hook", () => {
       const user = { id: "user-1" } satisfies TestUser;
+      const emit = vi.fn<(event: string, payload: string) => void>();
       const socket = {
-        emit: vi.fn<(event: string, payload: string) => void>(),
+        emit,
       } satisfies TestSocket;
       const isReadyPair: GuardPredicate<
         [TestUser | null, TestSocket | null],
@@ -292,7 +297,7 @@ describe("useEffectWhen", () => {
         )
       );
 
-      expect(socket.emit).toHaveBeenCalledWith("identify", "user-1");
+      expect(emit).toHaveBeenCalledWith("identify", "user-1");
     });
 
     it("should pass the current deps tuple into the base hook", () => {
@@ -313,8 +318,9 @@ describe("useEffectWhen", () => {
 
     it("should narrow deps for useEffectWhenReady", () => {
       const user = { id: "user-1" } satisfies TestUser;
+      const emit = vi.fn<(event: string, payload: string) => void>();
       const socket = {
-        emit: vi.fn<(event: string, payload: string) => void>(),
+        emit,
       } satisfies TestSocket;
 
       renderHook(() =>
@@ -329,7 +335,7 @@ describe("useEffectWhen", () => {
         )
       );
 
-      expect(socket.emit).toHaveBeenCalledWith("identify", "user-1");
+      expect(emit).toHaveBeenCalledWith("identify", "user-1");
     });
 
     it("should narrow deps for useEffectWhenTruthy", () => {

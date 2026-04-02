@@ -179,6 +179,7 @@ Use the root package import for all documented APIs:
 
 ```tsx
 import {
+  createEffectWhen,
   predicates,
   useEffectWhen,
   useEffectWhenReady,
@@ -193,6 +194,8 @@ Start with these first:
 - `useEffectWhen`
 - `useEffectWhenReady`
 - `useEffectWhenTruthy`
+
+Use `createEffectWhen` when the same predicate repeats across multiple components and deserves a named reusable hook.
 
 ### `useEffectWhen(effect, deps, predicate, options?)`
 
@@ -270,6 +273,109 @@ function SessionBanner({ token, isOnline }: { token: string | null; isOnline: bo
       connectBannerChannel(readyToken, online);
     },
     [token, isOnline],
+    { once: false }
+  );
+}
+```
+
+### `createEffectWhen(predicate)`
+
+Creates a reusable hook with a baked-in predicate.
+
+Use this when multiple components share the same condition and you want a named hook instead of repeating the predicate inline.
+
+**Parameters:**
+
+- `predicate: (deps: T) => boolean`
+
+**Returns:**
+
+- `(effect: (deps: T) => void | (() => void), deps: T, options?: UseEffectWhenOptions<T>) => void`
+
+If `predicate` is a type guard, the returned hook preserves narrowed dependency types inside `effect`.
+
+**Example:**
+
+```tsx
+import { createEffectWhen, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
+
+const useEffectWhenAuthed = createEffectWhen<
+  [User | null, string | null],
+  ReadyDeps<[User | null, string | null]>
+>(
+  (deps): deps is ReadyDeps<[User | null, string | null]> =>
+    deps[0] !== null && deps[1] !== null
+);
+
+function Dashboard({ user, token }: { user: User | null; token: string | null }) {
+  useEffectWhenAuthed(
+    ([readyUser, readyToken]) => {
+      initializeDashboard(readyUser.id, readyToken);
+    },
+    [user, token]
+  );
+}
+```
+
+**Example with type narrowing:**
+
+```tsx
+import { createEffectWhen, predicates, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
+
+const useEffectWhenReady = createEffectWhen<
+  [User | null, Socket | null],
+  ReadyDeps<[User | null, Socket | null]>
+>((deps): deps is ReadyDeps<[User | null, Socket | null]> => predicates.ready(deps));
+
+function Connection({ user, socket }: { user: User | null; socket: Socket | null }) {
+  useEffectWhenReady(
+    ([readyUser, readySocket]) => {
+      readySocket.emit("identify", readyUser.id);
+    },
+    [user, socket]
+  );
+}
+```
+
+**Shared hook example:**
+
+```tsx
+// hooks/useEffectWhenAuthed.ts
+import { createEffectWhen, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
+
+export const useEffectWhenAuthed = createEffectWhen<
+  [User | null, string | null],
+  ReadyDeps<[User | null, string | null]>
+>(
+  (deps): deps is ReadyDeps<[User | null, string | null]> =>
+    deps[0] !== null && deps[1] !== null
+);
+```
+
+```tsx
+// Dashboard.tsx
+import { useEffectWhenAuthed } from "./hooks";
+
+function Dashboard({ user, token }: { user: User | null; token: string | null }) {
+  useEffectWhenAuthed(
+    ([readyUser, readyToken]) => {
+      initializeDashboard(readyUser.id, readyToken);
+    },
+    [user, token]
+  );
+}
+```
+
+```tsx
+// Notifications.tsx
+import { useEffectWhenAuthed } from "./hooks";
+
+function Notifications({ user, token }: { user: User | null; token: string | null }) {
+  useEffectWhenAuthed(
+    ([readyUser, readyToken]) => {
+      connectNotifications(readyUser.id, readyToken);
+    },
+    [user, token],
     { once: false }
   );
 }

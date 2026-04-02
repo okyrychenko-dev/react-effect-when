@@ -1,6 +1,7 @@
 export { useEffectWhen, predicates } from "./useEffectWhen";
 export { useEffectWhenReady } from "./useEffectWhenReady";
 export { useEffectWhenTruthy } from "./useEffectWhenTruthy";
+export { createEffectWhen } from "./createEffectWhen";
 export type {
   Predicate,
   ReadyDeps,
