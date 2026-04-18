@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-04-18
+
+### Added
+- Added `useEffectWhenChanged(effect, deps)` for update-only effects that skip the initial mount
+
+### Changed
+- Expanded the README with `useEffectWhenChanged` documentation and comparison guidance
+- Documented effect timing semantics more explicitly for `useEffectWhen`
+
 ## [1.0.4] - 2026-04-02
 
 ### Added

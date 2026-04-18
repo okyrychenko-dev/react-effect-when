@@ -92,6 +92,9 @@ export function useEffectWhen<T extends DependencyList>(
       }
     };
 
+    // React should re-run only when the dependency tuple changes.
+    // `predicate`, `onSkip`, and `once` stay fresh through refs and are intentionally
+    // not treated as reactive dependencies of this effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

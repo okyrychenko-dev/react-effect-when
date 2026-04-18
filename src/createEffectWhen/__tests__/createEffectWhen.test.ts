@@ -99,7 +99,7 @@ describe("createEffectWhen", () => {
 
   describe("guard predicate overload", () => {
     it("should narrow types with a guard predicate", () => {
-      const user = { id: "u1" } satisfies TestUser;
+      const user: TestUser = { id: "u1" };
 
       const isUserReady = (deps: [TestUser | null]): deps is [TestUser] => deps[0] !== null;
 

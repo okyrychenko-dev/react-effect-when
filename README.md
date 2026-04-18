@@ -4,9 +4,9 @@
 [![npm downloads](https://img.shields.io/npm/dm/@okyrychenko-dev/react-effect-when.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-effect-when)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> Declarative control over when React effects actually fire, especially when Strict Mode makes development noisy
+> Declarative conditional effects for React, with less boilerplate and less development noise
 
-`react-effect-when` helps you run effects only when dependencies reach the state you actually care about. Its main value is reducing development noise from React Strict Mode without disabling `StrictMode`, while also removing repeated `useRef` guards and `if`-based effect boilerplate.
+`react-effect-when` helps you run effects only when dependencies reach the state you actually care about. Its main value is expressing conditional effects declaratively, while also removing repeated `useRef` guards, `if`-based boilerplate, and some development noise around gated effects in React Strict Mode.
 
 ## What Problem It Solves
 
@@ -17,22 +17,22 @@ In real apps, many effects are not meant to run "on every mount-like moment". Th
 - analytics should fire once
 - a subscription should start only after auth is available
 
-In development, React Strict Mode can make those flows noisy by intentionally re-mounting and re-running effects. Teams often respond by:
+Teams often respond by:
 
 - disabling Strict Mode
 - adding ad hoc `useRef(false)` guards
 - pushing conditional logic deep inside `useEffect`
 
-`react-effect-when` gives you a cleaner option: keep Strict Mode on, but express effect timing declaratively.
+`react-effect-when` gives you a cleaner option: express effect timing declaratively instead of repeating local guard logic in every component.
 
 ## Main Goals
 
-- Reduce Strict Mode effect noise in development without turning Strict Mode off
 - Replace repetitive `useRef` guards and early-return boilerplate with a declarative API
 - Run effects only when dependencies are actually ready, truthy, or match a custom predicate
 - Keep effect intent readable at the call site instead of hiding conditions inside the effect body
 - Preserve predictable cleanup behavior and a familiar React mental model
 - Provide strong TypeScript support for readiness and predicate-based narrowing
+- Reduce some Strict Mode-related development noise in gated-effect scenarios without turning Strict Mode off
 
 ## Why Use It
 
@@ -78,7 +78,7 @@ function Dashboard() {
 
 ## Strict Mode In Development
 
-This library is especially useful when you want development to feel closer to production for side effects that should not create extra noise.
+This library can reduce some development noise when a side effect should run only after a meaningful condition is satisfied.
 
 Common examples:
 
@@ -90,6 +90,8 @@ Common examples:
 
 The goal is not to fight React or replace `useEffect`. The goal is to make effect timing explicit and convenient in the cases where plain `useEffect` becomes noisy or repetitive.
 
+This is not a global fix for Strict Mode re-mount behavior. With `once: true`, the effect still runs once per mount lifecycle after the predicate first matches.
+
 ## Core Concepts
 
 - `useEffectWhen` is the base hook. It receives the current dependency tuple and runs only when your predicate returns `true`.
@@ -100,10 +102,6 @@ The goal is not to fight React or replace `useEffect`. The goal is to make effec
 - `predicates.ready`, `predicates.truthy`, and `predicates.always` are reusable building blocks for the base hook.
 
 ## Core Use Cases
-
-### Reduce Strict Mode dev noise
-
-Use `useEffectWhen` when a side effect should run only after a meaningful condition is satisfied instead of reacting to every mount-like development cycle.
 
 ### Wait for async readiness
 
@@ -117,6 +115,10 @@ Use `useEffectWhen` when your current `useEffect` bodies mostly start with early
 
 Use `once: false` when you want the effect to run every time a threshold or condition is satisfied again.
 
+### Reduce gated-effect dev noise
+
+Use `useEffectWhen` when a side effect should run only after a meaningful condition is satisfied instead of putting repeated guards inside the effect body.
+
 ## Comparison
 
 |                                           | Plain `useEffect`               | Generic effect helper | `@okyrychenko-dev/react-effect-when` |
@@ -124,6 +126,7 @@ Use `once: false` when you want the effect to run every time a threshold or cond
 | Conditional effect execution              | Manual guards inside the effect | Usually supported     | Built-in                             |
 | Wait for non-null async readiness         | Manual guards                   | Varies                | `useEffectWhenReady`                 |
 | Wait for truthy values                    | Manual guards                   | Varies                | `useEffectWhenTruthy`                |
+| Skip the initial mount                    | Manual `useRef` guard           | Varies                | `useEffectWhenChanged`               |
 | Repeat only on meaningful matches         | Manual branching                | Varies                | `once: false`                        |
 | Access current deps tuple in the callback | Manual closure usage            | Varies                | Built-in                             |
 | Observe skipped states                    | Manual logging                  | Rare                  | `onSkip`                             |
@@ -133,17 +136,17 @@ Use `once: false` when you want the effect to run every time a threshold or cond
 
 - Clear intent: the condition for running the effect is visible at the call site
 - Less boilerplate: fewer manual refs, flags, and nested guards
-- Better dev ergonomics: less Strict Mode noise without turning Strict Mode off
+- Better dev ergonomics: less local effect boilerplate and less noise around gated effects
 - Familiar semantics: still built on top of normal React effect behavior
 - Typed readiness helpers: better safety when dependencies become available
 
 ## When To Use It
 
-- You want to reduce React Strict Mode double-invoke noise during development
 - Your `useEffect` usually starts with guards like `if (!user || !socket) return`
 - You would otherwise add `useRef` flags just to prevent effect running twice in development
 - Your effect should wait until values are ready, truthy, or match a custom predicate
 - You want cleanup behavior to stay explicit while the trigger condition stays readable
+- You want a cleaner way to gate effects during development without disabling `StrictMode`
 
 ## When Not To Use It
 
@@ -169,7 +172,7 @@ The problem appears when the same pattern repeats across a codebase:
 
 This library does not disable React Strict Mode, patch React behavior, or guarantee perfectly identical production behavior in every scenario.
 
-What it does is make effect timing explicit and ergonomic in the cases where you want to reduce unnecessary development noise and avoid repeating local guard logic.
+What it does is make effect timing explicit and ergonomic in the cases where you want to avoid repeating local guard logic and reduce unnecessary development noise around conditional effects.
 
 ## API Reference
 
@@ -182,6 +185,7 @@ import {
   createEffectWhen,
   predicates,
   useEffectWhen,
+  useEffectWhenChanged,
   useEffectWhenReady,
   useEffectWhenTruthy,
 } from "@okyrychenko-dev/react-effect-when";
@@ -192,10 +196,39 @@ import {
 Start with these first:
 
 - `useEffectWhen`
+- `useEffectWhenChanged`
 - `useEffectWhenReady`
 - `useEffectWhenTruthy`
 
 Use `createEffectWhen` when the same predicate repeats across multiple components and deserves a named reusable hook.
+
+### `useEffectWhenChanged(effect, deps)`
+
+Runs an effect only after the initial mount, when `deps` change.
+
+Use this when you want update-only behavior without repeating a `useRef(true)` guard in each component.
+
+This hook does not debounce or throttle updates. If your input changes rapidly, the effect still runs once per changed render.
+
+**Parameters:**
+
+- `effect: (deps: T) => void | (() => void)` - Same cleanup semantics as `useEffect`, plus access to the current dependency tuple
+- `deps: T extends DependencyList`
+
+**Example:**
+
+```tsx
+import { useEffectWhenChanged } from "@okyrychenko-dev/react-effect-when";
+
+function Search({ query }: { query: string }) {
+  useEffectWhenChanged(
+    ([nextQuery]) => {
+      trackSearchChange(nextQuery);
+    },
+    [query]
+  );
+}
+```
 
 ### `useEffectWhen(effect, deps, predicate, options?)`
 
@@ -209,6 +242,8 @@ Runs an effect only when `predicate(deps)` returns `true`.
 - `options?: UseEffectWhenOptions<T>`
   - `once?: boolean` - Run once after the first match or on every match
   - `onSkip?: (deps: T) => void` - Called when dependencies change and the predicate returns `false`; stops firing after the effect runs if `once: true`
+
+`effect` follows normal `useEffect` semantics: React re-evaluates it when `deps` change. By design, `predicate`, `onSkip`, and `once` are kept fresh via refs, so they do not need to appear in the dependency array.
 
 **Example:**
 

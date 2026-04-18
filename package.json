@@ -1,6 +1,6 @@
 {
   "name": "@okyrychenko-dev/react-effect-when",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Declarative conditional effects for React with less Strict Mode noise in development",
   "keywords": [
     "react",

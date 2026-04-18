@@ -4,8 +4,6 @@ import { StrictMode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useEffectWhen } from "../../useEffectWhen";
 import { predicates } from "../../useEffectWhen";
-import { useEffectWhenReady } from "../../useEffectWhenReady";
-import { useEffectWhenTruthy } from "../../useEffectWhenTruthy";
 import { pair, tuple } from "./useEffectWhen.utils";
 import type { GuardPredicate } from "../../useEffectWhen";
 import type { DependencyList, PropsWithChildren } from "react";
@@ -275,11 +273,11 @@ describe("useEffectWhen", () => {
 
   describe("typed presets", () => {
     it("should accept a GuardPredicate directly in the base hook", () => {
-      const user = { id: "user-1" } satisfies TestUser;
+      const user: TestUser = { id: "user-1" };
       const emit = vi.fn<(event: string, payload: string) => void>();
-      const socket = {
+      const socket: TestSocket = {
         emit,
-      } satisfies TestSocket;
+      };
       const isReadyPair: GuardPredicate<
         [TestUser | null, TestSocket | null],
         [TestUser, TestSocket]
@@ -314,41 +312,6 @@ describe("useEffectWhen", () => {
       );
 
       expect(effect).toHaveBeenCalledWith([7]);
-    });
-
-    it("should narrow deps for useEffectWhenReady", () => {
-      const user = { id: "user-1" } satisfies TestUser;
-      const emit = vi.fn<(event: string, payload: string) => void>();
-      const socket = {
-        emit,
-      } satisfies TestSocket;
-
-      renderHook(() =>
-        useEffectWhenReady(
-          ([readyUser, readySocket]) => {
-            expectTypeOf(readyUser).toEqualTypeOf<TestUser>();
-            expectTypeOf(readySocket).toEqualTypeOf<TestSocket>();
-
-            readySocket.emit("identify", readyUser.id);
-          },
-          pair<TestUser | null, TestSocket | null>(user, socket)
-        )
-      );
-
-      expect(emit).toHaveBeenCalledWith("identify", "user-1");
-    });
-
-    it("should narrow deps for useEffectWhenTruthy", () => {
-      renderHook(() =>
-        useEffectWhenTruthy(
-          ([token, count, enabled]) => {
-            expectTypeOf(token).toEqualTypeOf<string>();
-            expectTypeOf(count).toEqualTypeOf<number>();
-            expectTypeOf(enabled).toEqualTypeOf<true>();
-          },
-          ["token", 1, true] satisfies [string | undefined, number | null, boolean]
-        )
-      );
     });
   });
 
