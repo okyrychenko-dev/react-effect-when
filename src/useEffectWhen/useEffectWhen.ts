@@ -1,4 +1,6 @@
 import { type DependencyList, useEffect, useRef } from "react";
+import { ONCE_CLEANUP_WARNING } from "./useEffectWhen.constants";
+import { shouldWarnAboutOnceCleanup } from "./useEffectWhen.utils";
 import type {
   GuardPredicate,
   Predicate,
@@ -81,6 +83,10 @@ export function useEffectWhen<T extends DependencyList>(
     hasRun.current = true;
 
     const cleanup = effect(deps);
+
+    if (shouldWarnAboutOnceCleanup() && onceRef.current && typeof cleanup === "function") {
+      console.warn(ONCE_CLEANUP_WARNING);
+    }
 
     return () => {
       if (cleanup) {

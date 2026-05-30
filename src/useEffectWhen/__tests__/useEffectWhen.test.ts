@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { StrictMode } from "react";
-import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useEffectWhen } from "../../useEffectWhen";
 import { predicates } from "../../useEffectWhen";
 import { pair, tuple } from "./useEffectWhen.utils";
@@ -19,6 +19,16 @@ interface TestSocket {
 const ready = (deps: DependencyList): boolean => predicates.ready(deps);
 const truthy = (deps: DependencyList): boolean => predicates.truthy(deps);
 const always = (deps: DependencyList): boolean => predicates.always(deps);
+
+beforeEach(() => {
+  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 function setup<T extends ReadonlyArray<unknown>>(
   initialDeps: T,
@@ -95,6 +105,30 @@ describe("useEffectWhen", () => {
       unmount();
       expect(cleanup).not.toHaveBeenCalled();
     });
+
+    it("should warn in development when a once effect returns cleanup", () => {
+      setup(["value"], truthy);
+
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("effect returned a cleanup function while once:true")
+      );
+    });
+
+    it("should not warn in production when a once effect returns cleanup", () => {
+      vi.stubEnv("NODE_ENV", "production");
+
+      setup(["value"], truthy);
+
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it("should not warn when process is unavailable (browser bundle)", () => {
+      vi.stubGlobal("process", undefined);
+
+      setup(["value"], truthy);
+
+      expect(console.warn).not.toHaveBeenCalled();
+    });
   });
 
   describe("once: false", () => {
@@ -143,6 +177,12 @@ describe("useEffectWhen", () => {
 
       unmount();
       expect(cleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not warn when a repeatable effect returns cleanup", () => {
+      setup(tuple(1), ([n]) => n > 0, { once: false });
+
+      expect(console.warn).not.toHaveBeenCalled();
     });
   });
 
