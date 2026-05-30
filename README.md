@@ -71,7 +71,8 @@ function Dashboard() {
       readySocket.emit("identify", readyUser.id);
       return () => readySocket.emit("leave", readyUser.id);
     },
-    [user, socket]
+    [user, socket],
+    { once: false }
   );
 }
 ```
@@ -82,24 +83,44 @@ This library can reduce some development noise when a side effect should run onl
 
 Common examples:
 
-- WebSocket or channel initialization
 - analytics and tracking calls
-- one-time setup effects
+- one-time fire-and-forget effects
 - notifications and toasts
+- WebSocket or channel initialization after auth is ready
 - effects that should wait for fully ready data
 
 The goal is not to fight React or replace `useEffect`. The goal is to make effect timing explicit and convenient in the cases where plain `useEffect` becomes noisy or repetitive.
 
-This is not a global fix for Strict Mode re-mount behavior. With `once: true`, the effect still runs once per mount lifecycle after the predicate first matches.
+This is not a global fix for Strict Mode re-mount behavior. With `once: true`, the effect runs once per mount lifecycle after the predicate first matches. That is useful for fire-and-forget effects, but it is usually the wrong setting for long-lived resources that return cleanup functions.
 
 ## Core Concepts
 
 - `useEffectWhen` is the base hook. It receives the current dependency tuple and runs only when your predicate returns `true`.
-- `once: true` means the effect runs once per mount lifecycle after the predicate first matches.
-- `once: false` means the effect re-runs every time dependencies change and the predicate matches again.
+- `once: true` is the default. It means the effect runs once per mount lifecycle after the predicate first matches.
+- `once: false` means the effect re-runs every time dependencies change and the predicate matches again. Use this for subscriptions, sockets, event listeners, timers, and other resource effects that return cleanup.
 - `useEffectWhenReady` is the fastest path when all dependencies must be non-null and non-undefined.
 - `useEffectWhenTruthy` is the fastest path when all dependencies must be truthy.
 - `predicates.ready`, `predicates.truthy`, and `predicates.always` are reusable building blocks for the base hook.
+
+## `once` Semantics
+
+`once` controls whether a matched effect may run again in the same mount lifecycle.
+
+Use `once: true` for effects that should happen once after a condition becomes true and do not need to keep a resource alive:
+
+- analytics and tracking calls
+- notifications and toasts
+- imperative one-time callbacks
+- idempotent initialization without cleanup
+
+Use `once: false` for effects that create a resource and return cleanup:
+
+- WebSocket or channel connections
+- event listeners and subscriptions
+- intervals, timeouts, and animation loops
+- effects that must follow changed dependency values after the first match
+
+When `once: true`, React may still call the previous cleanup during dependency changes, unmounts, or Strict Mode development checks. The hook will not run the setup again in that same mount lifecycle after it has already matched once. For resource effects, this can leave the resource cleaned up but not recreated. Prefer `once: false` whenever the returned cleanup tears down something that should remain active while the component is mounted.
 
 ## Core Use Cases
 
@@ -113,7 +134,7 @@ Use `useEffectWhen` when your current `useEffect` bodies mostly start with early
 
 ### Re-run only on meaningful matches
 
-Use `once: false` when you want the effect to run every time a threshold or condition is satisfied again.
+Use `once: false` when you want the effect to run every time a threshold or condition is satisfied again, or when the effect owns a resource that must be cleaned up and recreated.
 
 ### Reduce gated-effect dev noise
 
@@ -143,7 +164,7 @@ Use `useEffectWhen` when a side effect should run only after a meaningful condit
 ## When To Use It
 
 - Your `useEffect` usually starts with guards like `if (!user || !socket) return`
-- You would otherwise add `useRef` flags just to prevent effect running twice in development
+- You would otherwise add `useRef` flags for fire-and-forget effects that should run once after a condition is met
 - Your effect should wait until values are ready, truthy, or match a custom predicate
 - You want cleanup behavior to stay explicit while the trigger condition stays readable
 - You want a cleaner way to gate effects during development without disabling `StrictMode`
@@ -154,6 +175,7 @@ Use `useEffectWhen` when a side effect should run only after a meaningful condit
 - The effect should always run for every dependency change with no gating
 - The condition belongs in derived state or render logic rather than in an effect
 - You are trying to bypass real remount semantics or "fix" React Strict Mode globally
+- You need `once: true` to keep a cleanup-backed resource alive after React has cleaned it up
 
 ## Why Not Just Use `useEffect` + `if` + `useRef`
 
@@ -240,10 +262,12 @@ Runs an effect only when `predicate(deps)` returns `true`.
 - `deps: T extends DependencyList` - Passed to React and to the predicate
 - `predicate: (deps: T) => boolean` - Condition that controls when the effect runs
 - `options?: UseEffectWhenOptions<T>`
-  - `once?: boolean` - Run once after the first match or on every match
+  - `once?: boolean` - Defaults to `true`. Run once after the first match, or set `once: false` to re-run on every matching dependency change
   - `onSkip?: (deps: T) => void` - Called when dependencies change and the predicate returns `false`; stops firing after the effect runs if `once: true`
 
-`effect` follows normal `useEffect` semantics: React re-evaluates it when `deps` change. By design, `predicate`, `onSkip`, and `once` are kept fresh via refs, so they do not need to appear in the dependency array.
+`effect` follows normal `useEffect` cleanup semantics, but `once: true` prevents the setup from running again after the first successful match in the same mount lifecycle. If the effect returns cleanup for a long-lived resource, pass `{ once: false }` so React can clean up the previous resource and recreate the next one when needed.
+
+By design, `predicate`, `onSkip`, and `once` are kept fresh via refs, so they do not need to appear in the dependency array.
 
 **Example:**
 
@@ -484,12 +508,13 @@ function RealtimeConnection({
         socket.close();
       };
     },
-    [userId, authToken]
+    [userId, authToken],
+    { once: false }
   );
 }
 ```
 
-This keeps WebSocket setup declarative and avoids scattering `if (!userId || !authToken) return` checks through the effect body.
+This keeps WebSocket setup declarative and avoids scattering `if (!userId || !authToken) return` checks through the effect body. Because the effect opens a connection and returns cleanup, it uses `once: false` so the connection can be recreated after dependency changes or Strict Mode development checks.
 
 ### Show a toast only when a modal actually opens
 
@@ -580,7 +605,7 @@ public documentation for package usage.
 | ----------------------------------------------------- | -------------------------------------------------- |
 | Predicate `false` on mount                            | Effect does not run                                |
 | Predicate becomes `true`                              | Effect runs                                        |
-| Deps change after effect ran (`once: true`)           | Effect does not re-run                             |
+| Deps change after effect ran (`once: true`)           | Previous cleanup may run; setup does not re-run    |
 | Deps toggle back to falsy, then truthy (`once: true`) | Effect does not re-run                             |
 | Predicate `true` again (`once: false`)                | Effect re-runs and the previous cleanup runs first |
 | Component unmounts                                    | Cleanup runs once                                  |
@@ -591,6 +616,7 @@ public documentation for package usage.
 - `predicate` and `onSkip` are stored in refs, so the hook always uses their latest version without adding them to the dependency array.
 - `once` is also kept fresh internally, so cleanup logic follows the latest option value across renders.
 - Only `deps` control when React re-runs the effect. Changing `predicate` or `onSkip` alone does not trigger a re-run.
+- With `once: true`, cleanup does not reset the "already ran" state. This preserves once-only behavior for fire-and-forget effects, but it means cleanup-backed resources should usually use `once: false`.
 - `useEffectWhen` passes the current dependency tuple into `effect`.
 - `useEffectWhenReady` and `useEffectWhenTruthy` are the preferred APIs when you want narrowed values for the common built-in conditions.
 - In React Strict Mode, behavior is still scoped per mount lifecycle. A real remount is treated as a fresh hook instance.

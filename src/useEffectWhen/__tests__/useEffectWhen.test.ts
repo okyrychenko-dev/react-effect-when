@@ -357,6 +357,61 @@ describe("useEffectWhen", () => {
       expect(cleanup).toHaveBeenCalledTimes(2);
       expect(effect).toHaveBeenCalledTimes(3);
     });
+
+    it("should keep a cleanup-backed resource active across dependency changes when once is false", () => {
+      let activeConnections = 0;
+
+      const { rerender, unmount } = renderHook(
+        ({ deps }: { deps: [string] }) =>
+          useEffectWhen(
+            () => {
+              activeConnections += 1;
+
+              return () => {
+                activeConnections -= 1;
+              };
+            },
+            deps,
+            truthy,
+            { once: false }
+          ),
+        { initialProps: { deps: tuple("token-1") } }
+      );
+
+      expect(activeConnections).toBe(1);
+
+      rerender({ deps: tuple("token-2") });
+      expect(activeConnections).toBe(1);
+
+      unmount();
+      expect(activeConnections).toBe(0);
+    });
+
+    it("should tear down a cleanup-backed resource on dependency change and not recreate it when once is true", () => {
+      let activeConnections = 0;
+
+      const { rerender } = renderHook(
+        ({ deps }: { deps: [string] }) =>
+          useEffectWhen(
+            () => {
+              activeConnections += 1;
+
+              return () => {
+                activeConnections -= 1;
+              };
+            },
+            deps,
+            truthy,
+            { once: true }
+          ),
+        { initialProps: { deps: tuple("token-1") } }
+      );
+
+      expect(activeConnections).toBe(1);
+
+      rerender({ deps: tuple("token-2") });
+      expect(activeConnections).toBe(0);
+    });
   });
 
   describe("predicates", () => {
