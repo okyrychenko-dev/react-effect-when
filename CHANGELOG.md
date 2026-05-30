@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-05-30
+
+### Changed
+- Clarified `once` semantics in the README: repositioned `once: true` as the fire-and-forget default and steered resource effects (sockets, subscriptions, listeners, timers) toward `once: false`
+- Updated the WebSocket and dashboard examples to use `once: false` for cleanup-backed resources
+- Documented that with `once: true`, React may still run the previous cleanup on a dependency change while the setup stays blocked, leaving a resource torn down but not recreated
+
+### Tests
+- Added regression tests covering both `once` paths: `once: false` keeps a cleanup-backed resource alive across dependency changes, while `once: true` tears it down without recreating it
+
 ## [1.1.0] - 2026-04-18
 
 ### Added
