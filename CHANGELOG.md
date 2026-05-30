@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-05-30
+
+### Added
+- Added a development-only warning when an effect returns a cleanup function while `once: true`. React may run that cleanup on a dependency change without re-running the setup, leaving the resource torn down but not recreated; the warning steers you toward `{ once: false }` for sockets, subscriptions, listeners, and timers. The guard relies on the literal `process.env.NODE_ENV`, so bundlers strip it from production builds and it stays silent when no `process` global exists
+
 ## [1.1.1] - 2026-05-30
 
 ### Changed
