@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-08-16
+
+### Added
+- Added `useEffectWhenMatch(effect, deps, key, value, options?)`, a prototype hook that gates an effect on a single discriminated-union dependency's `key` field equaling `value` and passes the matched variant to `effect`. Not limited to a `status` field — `key` can be any discriminant property. Exports `Discriminant<K>` and `MatchedDeps<K, Q, V>` as named types
+
+### Changed
+- Repositioned the package around its main differentiator: type-safe narrowing of gated deps, not React Strict Mode noise reduction. Updated `package.json` description/keywords and reordered the README so the narrowed-deps example leads, with Strict Mode benefits demoted to a secondary, shrunk section
+- Added a `use client` banner to the build output (`tsup.config.ts`) so the package can be imported from Next.js App Router server components without a hooks-on-the-server error
+- Documented `react-hooks/exhaustive-deps`'s `additionalHooks` option in the README so consumers get dep linting on `useEffectWhen` and its variants
+
 ## [1.2.0] - 2026-05-30
 
 ### Added
