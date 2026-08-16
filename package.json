@@ -1,23 +1,22 @@
 {
   "name": "@okyrychenko-dev/react-effect-when",
   "version": "1.2.0",
-  "description": "Declarative conditional effects for React with less Strict Mode noise in development",
+  "description": "Run effects only when your deps are ready — with the narrowed types to prove it",
   "keywords": [
     "react",
     "hook",
     "useeffect",
-    "strict-mode",
-    "strictmode",
-    "double-invoke",
-    "double-render",
+    "type-safe",
+    "narrowing",
+    "type-narrowing",
+    "guard-predicate",
     "effect",
     "conditional-effect",
-    "useeffect-strict-mode",
     "useeffect-guard",
     "predicate",
     "typescript",
     "react-hooks",
-    "development"
+    "strict-mode"
   ],
   "homepage": "https://github.com/okyrychenko-dev/react-effect-when#readme",
   "bugs": {
@@ -91,7 +90,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.0.9"
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.27.4": true
