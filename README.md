@@ -4,9 +4,18 @@
 [![npm downloads](https://img.shields.io/npm/dm/@okyrychenko-dev/react-effect-when.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-effect-when)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> Declarative conditional effects for React, with less boilerplate and less development noise
+> Run effects only when your deps are ready — with the narrowed types to prove it
 
-`react-effect-when` helps you run effects only when dependencies reach the state you actually care about. Its main value is expressing conditional effects declaratively, while also removing repeated `useRef` guards, `if`-based boilerplate, and some development noise around gated effects in React Strict Mode.
+```tsx
+useEffectWhenReady(
+  ([user, socket]) => {
+    socket.emit("identify", user.id); // both non-null, no `!` or `?.` needed
+  },
+  [user, socket]
+);
+```
+
+`react-effect-when` helps you run effects only when dependencies reach the state you actually care about — and, unlike a manual `if (!user || !socket) return` guard, it gives the callback a type-narrowed version of your deps, so `user` and `socket` are provably non-null inside `effect` instead of merely "probably fine." Along the way it also removes repeated `useRef` guards, `if`-based boilerplate, and some development noise around gated effects in React Strict Mode.
 
 ## What Problem It Solves
 
@@ -27,20 +36,21 @@ Teams often respond by:
 
 ## Main Goals
 
+- Provide strong TypeScript support for readiness and predicate-based narrowing, so `effect` receives already-narrowed deps
 - Replace repetitive `useRef` guards and early-return boilerplate with a declarative API
 - Run effects only when dependencies are actually ready, truthy, or match a custom predicate
 - Keep effect intent readable at the call site instead of hiding conditions inside the effect body
 - Preserve predictable cleanup behavior and a familiar React mental model
-- Provide strong TypeScript support for readiness and predicate-based narrowing
 - Reduce some Strict Mode-related development noise in gated-effect scenarios without turning Strict Mode off
 
 ## Why Use It
 
-- Run an effect only when `predicate(deps)` becomes true
+- Get a type-narrowed deps tuple inside `effect` instead of `user!.id` or `user?.id`
 - Avoid repeating `if (!user || !socket) return` across components
-- Reduce extra development noise around initialization, analytics, sockets, and one-time side effects
+- Run an effect only when `predicate(deps)` becomes true
 - Re-run only on meaningful matches with `once: false`
 - Use `useEffectWhenReady` and `useEffectWhenTruthy` for common typed cases
+- Reduce extra development noise around initialization, analytics, sockets, and one-time side effects
 - Keep public imports simple through the root package API
 
 ## Installation
@@ -56,6 +66,17 @@ pnpm add @okyrychenko-dev/react-effect-when
 This package requires the following peer dependencies:
 
 - [React](https://react.dev/) ^18.0.0 || ^19.0.0
+
+## ESLint Integration
+
+`react-hooks/exhaustive-deps` does not know about `useEffectWhen` and friends by default, so it will not lint their `deps` argument. Add them via `additionalHooks`:
+
+```js
+// eslint.config.js (or .eslintrc)
+"react-hooks/exhaustive-deps": ["warn", {
+  additionalHooks: "(useEffectWhen|useEffectWhenReady|useEffectWhenTruthy|useEffectWhenChanged|useEffectWhenMatch)"
+}]
+```
 
 ## Quick Start
 
@@ -76,22 +97,6 @@ function Dashboard() {
   );
 }
 ```
-
-## Strict Mode In Development
-
-This library can reduce some development noise when a side effect should run only after a meaningful condition is satisfied.
-
-Common examples:
-
-- analytics and tracking calls
-- one-time fire-and-forget effects
-- notifications and toasts
-- WebSocket or channel initialization after auth is ready
-- effects that should wait for fully ready data
-
-The goal is not to fight React or replace `useEffect`. The goal is to make effect timing explicit and convenient in the cases where plain `useEffect` becomes noisy or repetitive.
-
-This is not a global fix for Strict Mode re-mount behavior. With `once: true`, the effect runs once per mount lifecycle after the predicate first matches. That is useful for fire-and-forget effects, but it is usually the wrong setting for long-lived resources that return cleanup functions.
 
 ## Core Concepts
 
@@ -147,6 +152,7 @@ Use `useEffectWhen` when a side effect should run only after a meaningful condit
 | Conditional effect execution              | Manual guards inside the effect | Usually supported     | Built-in                             |
 | Wait for non-null async readiness         | Manual guards                   | Varies                | `useEffectWhenReady`                 |
 | Wait for truthy values                    | Manual guards                   | Varies                | `useEffectWhenTruthy`                |
+| Narrow a discriminated union by any field | Manual guard + `!`/`?.`         | Rare                  | `useEffectWhenMatch`                 |
 | Skip the initial mount                    | Manual `useRef` guard           | Varies                | `useEffectWhenChanged`               |
 | Repeat only on meaningful matches         | Manual branching                | Varies                | `once: false`                        |
 | Access current deps tuple in the callback | Manual closure usage            | Varies                | Built-in                             |
@@ -155,11 +161,11 @@ Use `useEffectWhen` when a side effect should run only after a meaningful condit
 
 ## Key Benefits
 
+- Type-narrowed deps: `effect` receives already-narrowed values, so ready/truthy checks don't need `!` or `?.` inside the callback
 - Clear intent: the condition for running the effect is visible at the call site
 - Less boilerplate: fewer manual refs, flags, and nested guards
 - Better dev ergonomics: less local effect boilerplate and less noise around gated effects
 - Familiar semantics: still built on top of normal React effect behavior
-- Typed readiness helpers: better safety when dependencies become available
 
 ## When To Use It
 
@@ -190,11 +196,11 @@ The problem appears when the same pattern repeats across a codebase:
 
 `react-effect-when` gives that pattern one explicit API instead of many custom versions.
 
-## Important Boundary
+## Strict Mode In Development
 
-This library does not disable React Strict Mode, patch React behavior, or guarantee perfectly identical production behavior in every scenario.
+As a side effect of gating effects on a real condition instead of "on mount," this library also reduces some development noise from React Strict Mode double-invoking analytics calls, one-time fire-and-forget effects, and notifications before their trigger condition is actually met.
 
-What it does is make effect timing explicit and ergonomic in the cases where you want to avoid repeating local guard logic and reduce unnecessary development noise around conditional effects.
+It is not a global fix for Strict Mode re-mount behavior, and it does not disable Strict Mode, patch React behavior, or guarantee identical production behavior in every scenario. With `once: true`, the effect runs once per mount lifecycle after the predicate first matches — useful for fire-and-forget effects, but usually the wrong setting for long-lived resources that return cleanup (use `once: false` there instead).
 
 ## API Reference
 
@@ -208,6 +214,7 @@ import {
   predicates,
   useEffectWhen,
   useEffectWhenChanged,
+  useEffectWhenMatch,
   useEffectWhenReady,
   useEffectWhenTruthy,
 } from "@okyrychenko-dev/react-effect-when";
@@ -221,6 +228,7 @@ Start with these first:
 - `useEffectWhenChanged`
 - `useEffectWhenReady`
 - `useEffectWhenTruthy`
+- `useEffectWhenMatch`
 
 Use `createEffectWhen` when the same predicate repeats across multiple components and deserves a named reusable hook.
 
@@ -242,7 +250,11 @@ This hook does not debounce or throttle updates. If your input changes rapidly, 
 ```tsx
 import { useEffectWhenChanged } from "@okyrychenko-dev/react-effect-when";
 
-function Search({ query }: { query: string }) {
+type SearchProps = {
+  query: string;
+};
+
+function Search({ query }: SearchProps) {
   useEffectWhenChanged(
     ([nextQuery]) => {
       trackSearchChange(nextQuery);
@@ -274,7 +286,11 @@ By design, `predicate`, `onSkip`, and `once` are kept fresh via refs, so they do
 ```tsx
 import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
 
-function Game({ score }: { score: number }) {
+type GameProps = {
+  score: number;
+};
+
+function Game({ score }: GameProps) {
   useEffectWhen(
     ([currentScore]) => {
       showConfetti(currentScore);
@@ -301,7 +317,12 @@ Runs the effect when all dependency values are non-null and non-undefined.
 ```tsx
 import { useEffectWhenReady } from "@okyrychenko-dev/react-effect-when";
 
-function Profile({ user, token }: { user: User | null; token: string | null }) {
+type ProfileProps = {
+  user: User | null;
+  token: string | null;
+};
+
+function Profile({ user, token }: ProfileProps) {
   useEffectWhenReady(
     ([readyUser, readyToken]) => {
       trackProfileView(readyUser.id, readyToken);
@@ -326,13 +347,63 @@ Runs the effect when all dependency values are truthy.
 ```tsx
 import { useEffectWhenTruthy } from "@okyrychenko-dev/react-effect-when";
 
-function SessionBanner({ token, isOnline }: { token: string | null; isOnline: boolean }) {
+type SessionBannerProps = {
+  token: string | null;
+  isOnline: boolean;
+};
+
+function SessionBanner({ token, isOnline }: SessionBannerProps) {
   useEffectWhenTruthy(
     ([readyToken, online]) => {
       connectBannerChannel(readyToken, online);
     },
     [token, isOnline],
     { once: false }
+  );
+}
+```
+
+### `useEffectWhenMatch(effect, deps, key, value, options?)`
+
+Runs the effect when a single dependency's discriminant field equals a given value, narrowing `effect`'s dependency to that matched variant. Not limited to a `status` field — `key` can be any discriminant property, so this works for `{ status, data }` shapes (such as TanStack Query and RTK Query results), `{ kind }`/`{ type }` unions, or a reducer's own discriminant field.
+
+This specialized API intentionally accepts one dependency. Use `useEffectWhen` with a custom type-guard predicate when the condition spans multiple dependencies or requires more than discriminant equality.
+
+**Types:**
+
+- `Discriminant<K>` - constrains `Q` to an object carrying a literal-valued field at key `K`
+- `MatchedDeps<K, Q, V>` - the single-element tuple `effect` receives, `Q` narrowed to the variant where `Q[K]` is `V`
+
+**Parameters:**
+
+- `effect: (deps: MatchedDeps<K, Q, V>) => void | (() => void)`
+- `deps: readonly [Q]` - A single-element tuple wrapping the discriminated union value
+- `key: K` - The discriminant field to match on
+- `value: V` - The value `deps[0][key]` must equal for the effect to run
+- `options?: UseEffectWhenOptions<readonly [Q]>`
+
+**Example:**
+
+```tsx
+import { useEffectWhenMatch } from "@okyrychenko-dev/react-effect-when";
+
+type ProductQueryPending = { status: "pending" };
+type ProductQueryError = { status: "error"; error: Error };
+type ProductQuerySuccess = { status: "success"; data: Product };
+type ProductQuery = ProductQueryPending | ProductQueryError | ProductQuerySuccess;
+
+type ProductAnalyticsProps = {
+  query: ProductQuery;
+};
+
+function ProductAnalytics({ query }: ProductAnalyticsProps) {
+  useEffectWhenMatch(
+    ([result]) => {
+      analytics.track("product_loaded", { productId: result.data.id }); // `data` is not `undefined` here
+    },
+    [query],
+    "status",
+    "success"
   );
 }
 ```
@@ -358,15 +429,20 @@ If `predicate` is a type guard, the returned hook preserves narrowed dependency 
 ```tsx
 import { createEffectWhen, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
 
-const useEffectWhenAuthed = createEffectWhen<
-  [User | null, string | null],
-  ReadyDeps<[User | null, string | null]>
->(
-  (deps): deps is ReadyDeps<[User | null, string | null]> =>
-    deps[0] !== null && deps[1] !== null
-);
+type AuthDeps = [User | null, string | null];
 
-function Dashboard({ user, token }: { user: User | null; token: string | null }) {
+function isAuthed(deps: AuthDeps): deps is ReadyDeps<AuthDeps> {
+  return deps[0] !== null && deps[1] !== null;
+}
+
+const useEffectWhenAuthed = createEffectWhen<AuthDeps, ReadyDeps<AuthDeps>>(isAuthed);
+
+type DashboardProps = {
+  user: User | null;
+  token: string | null;
+};
+
+function Dashboard({ user, token }: DashboardProps) {
   useEffectWhenAuthed(
     ([readyUser, readyToken]) => {
       initializeDashboard(readyUser.id, readyToken);
@@ -381,12 +457,22 @@ function Dashboard({ user, token }: { user: User | null; token: string | null })
 ```tsx
 import { createEffectWhen, predicates, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
 
-const useEffectWhenReady = createEffectWhen<
-  [User | null, Socket | null],
-  ReadyDeps<[User | null, Socket | null]>
->((deps): deps is ReadyDeps<[User | null, Socket | null]> => predicates.ready(deps));
+type ConnectionDeps = [User | null, Socket | null];
 
-function Connection({ user, socket }: { user: User | null; socket: Socket | null }) {
+function isConnectionReady(deps: ConnectionDeps): deps is ReadyDeps<ConnectionDeps> {
+  return predicates.ready(deps);
+}
+
+const useEffectWhenReady = createEffectWhen<ConnectionDeps, ReadyDeps<ConnectionDeps>>(
+  isConnectionReady
+);
+
+type ConnectionProps = {
+  user: User | null;
+  socket: Socket | null;
+};
+
+function Connection({ user, socket }: ConnectionProps) {
   useEffectWhenReady(
     ([readyUser, readySocket]) => {
       readySocket.emit("identify", readyUser.id);
@@ -402,20 +488,25 @@ function Connection({ user, socket }: { user: User | null; socket: Socket | null
 // hooks/useEffectWhenAuthed.ts
 import { createEffectWhen, type ReadyDeps } from "@okyrychenko-dev/react-effect-when";
 
-export const useEffectWhenAuthed = createEffectWhen<
-  [User | null, string | null],
-  ReadyDeps<[User | null, string | null]>
->(
-  (deps): deps is ReadyDeps<[User | null, string | null]> =>
-    deps[0] !== null && deps[1] !== null
-);
+export type AuthDeps = [User | null, string | null];
+
+function isAuthed(deps: AuthDeps): deps is ReadyDeps<AuthDeps> {
+  return deps[0] !== null && deps[1] !== null;
+}
+
+export const useEffectWhenAuthed = createEffectWhen<AuthDeps, ReadyDeps<AuthDeps>>(isAuthed);
+
+export type AuthedProps = {
+  user: User | null;
+  token: string | null;
+};
 ```
 
 ```tsx
 // Dashboard.tsx
-import { useEffectWhenAuthed } from "./hooks";
+import { useEffectWhenAuthed, type AuthedProps } from "./hooks";
 
-function Dashboard({ user, token }: { user: User | null; token: string | null }) {
+function Dashboard({ user, token }: AuthedProps) {
   useEffectWhenAuthed(
     ([readyUser, readyToken]) => {
       initializeDashboard(readyUser.id, readyToken);
@@ -427,9 +518,9 @@ function Dashboard({ user, token }: { user: User | null; token: string | null })
 
 ```tsx
 // Notifications.tsx
-import { useEffectWhenAuthed } from "./hooks";
+import { useEffectWhenAuthed, type AuthedProps } from "./hooks";
 
-function Notifications({ user, token }: { user: User | null; token: string | null }) {
+function Notifications({ user, token }: AuthedProps) {
   useEffectWhenAuthed(
     ([readyUser, readyToken]) => {
       connectNotifications(readyUser.id, readyToken);
@@ -470,12 +561,45 @@ useEffectWhen(
 
 ## Real-World Examples
 
+### Sync a query's data only once it has actually loaded
+
+```tsx
+import { useEffectWhenMatch } from "@okyrychenko-dev/react-effect-when";
+
+type ProductQueryPending = { status: "pending" };
+type ProductQueryError = { status: "error"; error: Error };
+type ProductQuerySuccess = { status: "success"; data: Product };
+type ProductQuery = ProductQueryPending | ProductQueryError | ProductQuerySuccess;
+
+type ProductDetailsProps = {
+  query: ProductQuery;
+};
+
+function ProductDetails({ query }: ProductDetailsProps) {
+  useEffectWhenMatch(
+    ([result]) => {
+      document.title = result.data.name; // `data` is narrowed, not `Product | undefined`
+    },
+    [query],
+    "status",
+    "success"
+  );
+}
+```
+
+TanStack Query already models its result as a discriminated union, so checking `query.status === "success"` narrows the complete result object. The value of `useEffectWhenMatch` is ergonomic: it moves that repeated runtime check out of the effect body and passes only the matched variant into the callback. The same hook also works for `{ kind }`, `{ type }`, or any other discriminant.
+
 ### Prevent analytics from firing twice in development
 
 ```tsx
 import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
 
-function ProductPage({ productId, isReady }: { productId: string; isReady: boolean }) {
+type ProductPageProps = {
+  productId: string;
+  isReady: boolean;
+};
+
+function ProductPage({ productId, isReady }: ProductPageProps) {
   useEffectWhen(
     ([id]) => {
       analytics.track("product_view", { productId: id });
@@ -493,13 +617,12 @@ This is a common React Strict Mode double-invoke pain point in development when 
 ```tsx
 import { useEffectWhenReady } from "@okyrychenko-dev/react-effect-when";
 
-function RealtimeConnection({
-  userId,
-  authToken,
-}: {
+type RealtimeConnectionProps = {
   userId: string | null;
   authToken: string | null;
-}) {
+};
+
+function RealtimeConnection({ userId, authToken }: RealtimeConnectionProps) {
   useEffectWhenReady(
     ([readyUserId, readyToken]) => {
       const socket = connectSocket({ userId: readyUserId, token: readyToken });
@@ -521,7 +644,11 @@ This keeps WebSocket setup declarative and avoids scattering `if (!userId || !au
 ```tsx
 import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
 
-function Modal({ isOpen }: { isOpen: boolean }) {
+type ModalProps = {
+  isOpen: boolean;
+};
+
+function Modal({ isOpen }: ModalProps) {
   useEffectWhen(
     ([open]) => {
       toast.info("Modal opened");
@@ -541,7 +668,11 @@ This is useful when development re-mounts would otherwise create extra toast or 
 ```tsx
 import { useEffectWhen } from "@okyrychenko-dev/react-effect-when";
 
-function Modal({ isOpen }: { isOpen: boolean }) {
+type ModalProps = {
+  isOpen: boolean;
+};
+
+function Modal({ isOpen }: ModalProps) {
   useEffectWhen(
     ([open]) => {
       fetchModalData(open);
