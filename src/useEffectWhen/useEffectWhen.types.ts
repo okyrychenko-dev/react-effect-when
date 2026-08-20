@@ -37,7 +37,7 @@ export interface UseEffectWhenOptions<T extends DependencyList> {
 }
 
 export interface UseEffectWhenPredicates {
-  ready<T extends DependencyList>(deps: T): deps is ReadyDeps<T>;
-  truthy<T extends DependencyList>(deps: T): deps is TruthyDeps<T>;
-  always<T extends DependencyList>(deps: T): deps is T;
+  ready: <T extends DependencyList>(deps: T) => deps is ReadyDeps<T>;
+  truthy: <T extends DependencyList>(deps: T) => deps is TruthyDeps<T>;
+  always: <T extends DependencyList>(deps: T) => deps is T;
 }

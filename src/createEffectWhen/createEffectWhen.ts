@@ -24,10 +24,11 @@ import type { DependencyList } from "react";
  *   [user, token]
  * );
  *
- * @example — with a guard predicate for type narrowing
- * const useEffectWhenReady = createEffectWhen(
- *   (deps): deps is ReadyDeps<typeof deps> => predicates.ready(deps)
- * );
+ * NOTE: this bakes `predicate`'s deps shape in at creation time, so it fits a
+ * fixed deps shape reused across call sites. It's not a fit for the
+ * universal predicates like `predicates.ready`/`predicates.truthy` — those
+ * need to narrow a different deps tuple on every call, which is what
+ * `useEffectWhenReady`/`useEffectWhenTruthy` are for.
  */
 export function createEffectWhen<T extends DependencyList, U extends T>(
   predicate: GuardPredicate<T, U>
