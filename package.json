@@ -33,9 +33,14 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "main": "./dist/index.cjs",
@@ -49,15 +54,16 @@
   ],
   "scripts": {
     "build": "tsup",
+    "package:check": "pnpm run build && node scripts/check-packed-package.mjs && attw --pack . && publint",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "release:check": "pnpm run clean && pnpm run test:run && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run build",
+    "release:check": "pnpm run clean && pnpm run test:run && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run package:check",
     "prepublishOnly": "pnpm run release:check",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "format": "pnpm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\"",
-    "format:check": "pnpm run lint && prettier --check \"src/**/*.{ts,tsx}\"",
+    "lint": "eslint src scripts --ext .ts,.tsx,.mjs",
+    "lint:fix": "eslint src scripts --ext .ts,.tsx,.mjs --fix",
+    "format": "pnpm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\"",
+    "format:check": "pnpm run lint && prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -70,6 +76,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^9.39.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -86,6 +93,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.0.10",
     "prettier": "^3.6.2",
+    "publint": "^0.3.24",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tsup": "^8.5.1",
