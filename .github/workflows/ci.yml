@@ -45,6 +45,10 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Verify packed package
+        if: matrix.node == 22
+        run: pnpm run package:check
+
       - name: Upload coverage
         if: matrix.node == 22
         uses: codecov/codecov-action@v4
