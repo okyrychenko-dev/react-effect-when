@@ -76,5 +76,5 @@ All notable changes to this project will be documented in this file.
 - `once` option (default: `true`) — run effect only once or on every predicate match
 - `onSkip` option — callback when predicate returns false
 - Full TypeScript generics, no `any` or type assertions
-- Release verification via `npm run release:check`
+- Release verification via `pnpm run release:check`
 - Predictable React 18 Strict Mode behavior per mount lifecycle

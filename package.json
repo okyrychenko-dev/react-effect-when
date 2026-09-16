@@ -27,6 +27,7 @@
     "url": "https://github.com/okyrychenko-dev/react-effect-when"
   },
   "license": "MIT",
+  "packageManager": "pnpm@11.21.0",
   "author": "Oleksii Kyrychenko alexey.kirichenko@gmail.com",
   "sideEffects": false,
   "type": "module",
@@ -50,13 +51,13 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "release:check": "npm run clean && npm run test:run && npm run typecheck && npm run lint && npm run format:check && npm run build",
-    "prepublishOnly": "npm run release:check",
+    "release:check": "pnpm run clean && pnpm run test:run && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run build",
+    "prepublishOnly": "pnpm run release:check",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "format": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\"",
-    "format:check": "npm run lint && prettier --check \"src/**/*.{ts,tsx}\"",
+    "format": "pnpm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "pnpm run lint && prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -91,8 +92,5 @@
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.1.10"
-  },
-  "allowScripts": {
-    "esbuild@0.27.2": true
   }
 }

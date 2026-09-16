@@ -753,12 +753,25 @@ public documentation for package usage.
 - In React Strict Mode, behavior is still scoped per mount lifecycle. A real remount is treated as a fresh hook instance.
 - Public imports are exposed from the package root. Subpath imports are not required for the documented API.
 
-## Publish Checklist
-
-Before publishing a new version, make sure this command passes:
+## Development
 
 ```bash
-npm run release:check
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm run lint
+pnpm run format:check
+pnpm run test:run
+pnpm run test:coverage
+pnpm run build
+pnpm pack --pack-destination /tmp/react-effect-when-pack
+```
+
+## Publish Checklist
+
+Before publishing a new version, make sure the combined release check passes:
+
+```bash
+pnpm run release:check
 ```
 
 ## License
