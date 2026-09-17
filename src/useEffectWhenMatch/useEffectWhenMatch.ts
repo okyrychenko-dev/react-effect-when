@@ -5,8 +5,9 @@ import type { Discriminant, MatchedDeps } from "./useEffectWhenMatch.types";
 
 /**
  * Gates an effect on a discriminated union at `deps[0]` whose field at `key`
- * equals `value`, narrowing the effect's dependency to that matched variant
- * (e.g. a query result narrowed to its "success" shape).
+ * equals `value` or any value in a readonly array, narrowing the effect's
+ * dependency to the matched variant or union of variants. An empty value array
+ * never matches and narrows the effect's dependency to `never`.
  *
  * This specialized helper accepts one dependency. Use `useEffectWhen` with a
  * custom type guard for conditions involving multiple dependencies.
@@ -19,7 +20,7 @@ export function useEffectWhenMatch<
   effect: UseEffectWhenEffect<MatchedDeps<K, Q, V>>,
   deps: readonly [Q],
   key: K,
-  value: V,
+  value: V | ReadonlyArray<V>,
   options?: UseEffectWhenOptions<readonly [Q]>
 ): void {
   useEffectWhen(effect, deps, isMatch<K, Q, V>(key, value), options);
