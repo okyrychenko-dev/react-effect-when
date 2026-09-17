@@ -1,7 +1,7 @@
 import { useEffectWhen } from "../useEffectWhen";
-import { isMatch } from "./useEffectWhenMatch.utils";
-import type { UseEffectWhenEffect, UseEffectWhenOptions } from "../useEffectWhen";
+import { matchPredicate } from "./useEffectWhenMatch.utils";
 import type { Discriminant, MatchedDeps } from "./useEffectWhenMatch.types";
+import type { UseEffectWhenEffect, UseEffectWhenOptions } from "../useEffectWhen";
 
 /**
  * Gates an effect on a discriminated union at `deps[0]` whose field at `key`
@@ -23,5 +23,5 @@ export function useEffectWhenMatch<
   value: V | ReadonlyArray<V>,
   options?: UseEffectWhenOptions<readonly [Q]>
 ): void {
-  useEffectWhen(effect, deps, isMatch<K, Q, V>(key, value), options);
+  useEffectWhen(effect, deps, matchPredicate<K, Q, V>(key, value), options);
 }

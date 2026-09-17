@@ -1,7 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { createEffectWhen } from "..";
 import { predicates } from "../../useEffectWhen";
+import { matchPredicate } from "../../useEffectWhenMatch";
+import { createEffectWhen } from "../createEffectWhen";
 import { tuple } from "./createEffectWhen.utils";
 import type { ReadyDeps } from "../../useEffectWhen";
 import type { DependencyList } from "react";
@@ -9,6 +10,11 @@ import type { DependencyList } from "react";
 interface TestUser {
   id: string;
 }
+
+type QueryState =
+  | { status: "idle" }
+  | { status: "success"; data: string }
+  | { status: "error"; error: Error };
 
 const truthy = (deps: DependencyList): boolean => predicates.truthy(deps);
 const readyPair = (
@@ -123,6 +129,27 @@ describe("createEffectWhen", () => {
       renderHook(() => useEffectWhenBothReady(effect, ["hello", 42]));
 
       expect(effect).toHaveBeenCalledWith(["hello", 42]);
+    });
+
+    it("should compose matchPredicate into a reusable narrowed hook", () => {
+      const useEffectWhenQuerySettled = createEffectWhen(
+        matchPredicate<"status", QueryState, "success" | "error">("status", ["success", "error"])
+      );
+      const effect = vi.fn();
+
+      renderHook(() =>
+        useEffectWhenQuerySettled(
+          ([query]) => {
+            expectTypeOf(query).toEqualTypeOf<
+              Extract<QueryState, { status: "success" | "error" }>
+            >();
+            effect(query.status);
+          },
+          [{ status: "success", data: "result" }]
+        )
+      );
+
+      expect(effect).toHaveBeenCalledWith("success");
     });
   });
 });
