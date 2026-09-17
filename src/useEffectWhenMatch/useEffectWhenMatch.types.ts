@@ -8,5 +8,5 @@ export type Discriminant<K extends PropertyKey> = Record<K, PropertyKey>;
 export type MatchedDeps<
   K extends PropertyKey,
   Q extends Discriminant<K>,
-  V extends Q[K],
-> = readonly [Extract<Q, Record<K, V>>];
+  V extends Q[K] | ReadonlyArray<Q[K]>,
+> = readonly [Extract<Q, Record<K, V extends ReadonlyArray<infer E> ? E : V>>];

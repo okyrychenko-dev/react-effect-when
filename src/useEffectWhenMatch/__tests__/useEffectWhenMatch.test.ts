@@ -63,6 +63,35 @@ describe("useEffectWhenMatch", () => {
     expect(track).toHaveBeenCalledWith("item-1");
   });
 
+  it("should run and narrow deps when the field matches one of several values", () => {
+    const track = vi.fn<(status: "error" | "success") => void>();
+    const query = queryResult({ status: "error", error: new Error("Request failed") });
+
+    renderHook(() =>
+      useEffectWhenMatch(
+        ([result]) => {
+          expectTypeOf(result).toEqualTypeOf<QueryError | QuerySuccess>();
+
+          track(result.status);
+        },
+        [query],
+        "status",
+        ["success", "error"] as const
+      )
+    );
+
+    expect(track).toHaveBeenCalledWith("error");
+  });
+
+  it("should use array membership semantics for numeric discriminants", () => {
+    const effect = vi.fn();
+    const result = { code: Number.NaN };
+
+    renderHook(() => useEffectWhenMatch(effect, [result], "code", [Number.NaN]));
+
+    expect(effect).toHaveBeenCalledWith([result]);
+  });
+
   it("should not run when the field does not match", () => {
     const track = vi.fn<(id: string) => void>();
     const query = queryResult({ status: "pending" });
@@ -72,6 +101,35 @@ describe("useEffectWhenMatch", () => {
     );
 
     expect(track).not.toHaveBeenCalled();
+  });
+
+  it("should call onSkip with unnarrowed deps outside the matched values", () => {
+    const query = queryResult({ status: "pending" });
+    const onSkip = vi.fn<(deps: readonly [QueryResult]) => void>();
+
+    renderHook(() =>
+      useEffectWhenMatch(() => undefined, [query], "status", ["success", "error"], { onSkip })
+    );
+
+    expect(onSkip).toHaveBeenCalledWith([query]);
+  });
+
+  it("should call onSkip with unnarrowed deps outside a single matched value", () => {
+    const query = queryResult({ status: "pending" });
+    const onSkip = vi.fn<(deps: readonly [QueryResult]) => void>();
+
+    renderHook(() => useEffectWhenMatch(() => undefined, [query], "status", "success", { onSkip }));
+
+    expect(onSkip).toHaveBeenCalledWith([query]);
+  });
+
+  it("should never match an empty value array", () => {
+    const effect = vi.fn<(deps: readonly [never]) => void>();
+    const query = queryResult({ status: "success", data: { id: "item-1" } });
+
+    renderHook(() => useEffectWhenMatch(effect, [query], "status", [] as const));
+
+    expect(effect).not.toHaveBeenCalled();
   });
 
   it("should re-run when the field changes to a match with once: false", () => {
@@ -93,6 +151,28 @@ describe("useEffectWhenMatch", () => {
     rerender({ query: { status: "success", data: { id: "item-3" } } });
     expect(track).toHaveBeenCalledWith("item-3");
     expect(track).toHaveBeenCalledTimes(2);
+  });
+
+  it("should re-run between different matching values with once: false", () => {
+    const track = vi.fn<(status: "error" | "success") => void>();
+
+    const { rerender } = renderHook(
+      ({ query }: { query: QueryResult }) =>
+        useEffectWhenMatch(
+          ([result]) => track(result.status),
+          [query],
+          "status",
+          ["success", "error"],
+          { once: false }
+        ),
+      { initialProps: { query: queryResult({ status: "pending" }) } }
+    );
+
+    rerender({ query: { status: "success", data: { id: "item-2" } } });
+    rerender({ query: { status: "error", error: new Error("Request failed") } });
+
+    expect(track).toHaveBeenNthCalledWith(1, "success");
+    expect(track).toHaveBeenNthCalledWith(2, "error");
   });
 
   it("should work with any discriminant field name, not just `status`", () => {
@@ -126,6 +206,31 @@ describe("useEffectWhenMatch", () => {
           useEffectWhenMatch(([result]) => track(result.data.id), [query], "status", "success"),
         {
           initialProps: { query: { status: "success", data: { id: "item-1" } } },
+          wrapper,
+        }
+      );
+
+      expect(track).toHaveBeenCalledTimes(1);
+
+      rerender({ query: { status: "success", data: { id: "item-2" } } });
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not double-run an array match", () => {
+      const track = vi.fn<(status: "error" | "success") => void>();
+      const wrapper = ({ children }: PropsWithChildren) =>
+        createElement(StrictMode, null, children);
+
+      const { rerender } = renderHook(
+        ({ query }: { query: QueryResult }) =>
+          useEffectWhenMatch(([result]) => track(result.status), [query], "status", [
+            "success",
+            "error",
+          ]),
+        {
+          initialProps: {
+            query: queryResult({ status: "error", error: new Error("Request failed") }),
+          },
           wrapper,
         }
       );
