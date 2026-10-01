@@ -1,6 +1,6 @@
 {
   "name": "@okyrychenko-dev/react-effect-when",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Run effects only when your deps are ready — with the narrowed types to prove it",
   "keywords": [
     "react",
