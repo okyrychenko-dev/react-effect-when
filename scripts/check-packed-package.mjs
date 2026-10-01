@@ -87,6 +87,62 @@ function assertExportTargets(manifest, packageRoot) {
   }
 }
 
+function typecheck(files, context) {
+  try {
+    execFileSync(
+      join(repositoryPath, "node_modules/.bin/tsc"),
+      [
+        "--noEmit",
+        "--strict",
+        "--skipLibCheck",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--target",
+        "ES2020",
+        ...files,
+      ],
+      { cwd: consumerRoot, stdio: "inherit" }
+    );
+  } catch (cause) {
+    throw new Error(`Packed declaration check failed: ${context}`, { cause });
+  }
+}
+
+function documentedExample(readme, identity) {
+  const sections = readme.split(`<!-- package-example: ${identity} -->`);
+  const context = `README example ${identity} (ESM/CommonJS)`;
+  invariant(sections.length === 2, `${context}: expected exactly one selection marker`);
+  const block = sections[1].match(/^\s*```tsx\r?\n([\s\S]*?)\r?\n```(?=\r?\n|$)/u);
+  invariant(block !== null, `${context}: expected a fenced tsx example after the marker`);
+  return block[1];
+}
+
+function checkDocumentedExamples(packageRoot) {
+  const readme = readFileSync(join(packageRoot, "README.md"), "utf8");
+  // These are the selected matching examples, not a general Markdown compiler.
+  const exampleGroups = [
+    ["matching-explicit"],
+    ["matching-source-bound"],
+    ["matching-hook-scalar"],
+    // The array example explicitly uses the preceding scalar example's context.
+    ["matching-hook-scalar", "matching-hook-multiple"],
+  ];
+
+  for (const identities of exampleGroups) {
+    const contents = identities.map((identity) => documentedExample(readme, identity)).join("\n\n");
+    for (const [adapter, extension] of [
+      ["ESM", "mts"],
+      ["CommonJS", "cts"],
+    ]) {
+      const filename = `${identities.join("+")}.${extension}`;
+      writeFileSync(join(consumerRoot, filename), contents);
+      typecheck([filename], `README examples ${identities.join(", ")} (${adapter})`);
+    }
+  }
+}
+
 try {
   run("pnpm", ["pack", "--out", tarballPath]);
   mkdirSync(extractRoot, { recursive: true });
@@ -192,23 +248,8 @@ try {
 
   run("node", [join(consumerRoot, "esm.mjs")]);
   run("node", [join(consumerRoot, "cjs.cjs")]);
-  execFileSync(
-    join(repositoryPath, "node_modules/.bin/tsc"),
-    [
-      "--noEmit",
-      "--strict",
-      "--skipLibCheck",
-      "--module",
-      "NodeNext",
-      "--moduleResolution",
-      "NodeNext",
-      "--target",
-      "ES2020",
-      "consumer.mts",
-      "consumer.cts",
-    ],
-    { cwd: consumerRoot, stdio: "inherit" }
-  );
+  typecheck(["consumer.mts", "consumer.cts"], "exact-type and rejection fixtures (ESM/CommonJS)");
+  checkDocumentedExamples(packageRoot);
 } finally {
   rmSync(temporaryRoot, { force: true, recursive: true });
 }

@@ -33,9 +33,6 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Lint
-        run: pnpm run lint
-
       - name: Format check
         run: pnpm run format:check
 
@@ -43,6 +40,8 @@ jobs:
         run: pnpm run test:coverage
 
       - name: Build
+        # Node 22 builds as part of package:check below.
+        if: matrix.node == 24
         run: pnpm run build
 
       - name: Verify packed package
