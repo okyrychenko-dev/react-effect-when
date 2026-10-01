@@ -211,6 +211,7 @@ Use the root package import for all documented APIs:
 ```tsx
 import {
   createEffectWhen,
+  matchPredicate,
   predicates,
   useEffectWhen,
   useEffectWhenChanged,
@@ -365,21 +366,21 @@ function SessionBanner({ token, isOnline }: SessionBannerProps) {
 
 ### `useEffectWhenMatch(effect, deps, key, value, options?)`
 
-Runs the effect when a single dependency's discriminant field equals a given value, narrowing `effect`'s dependency to that matched variant. Not limited to a `status` field — `key` can be any discriminant property, so this works for `{ status, data }` shapes (such as TanStack Query and RTK Query results), `{ kind }`/`{ type }` unions, or a reducer's own discriminant field.
+Runs the effect when a single dependency's discriminant field equals a given value or any value in a readonly array. A single value narrows `effect`'s dependency to the matched variant; an array narrows it to the union of the matched variants. Not limited to a `status` field — `key` can be any discriminant property, so this works for `{ status, data }` shapes (such as TanStack Query and RTK Query results), `{ kind }`/`{ type }` unions, or a reducer's own discriminant field.
 
-This specialized API intentionally accepts one dependency. Use `useEffectWhen` with a custom type-guard predicate when the condition spans multiple dependencies or requires more than discriminant equality.
+This specialized API intentionally accepts one dependency. Use `useEffectWhen` with a custom type-guard predicate when the condition spans multiple dependencies or requires more than discriminant equality or membership.
 
 **Types:**
 
 - `Discriminant<K>` - constrains `Q` to an object carrying a literal-valued field at key `K`
-- `MatchedDeps<K, Q, V>` - the single-element tuple `effect` receives, `Q` narrowed to the variant where `Q[K]` is `V`
+- `MatchedDeps<K, Q, V>` - the single-element tuple `effect` receives, with `Q` narrowed to the variants whose discriminant matches `V` (or an element of `V` when `V` is an array)
 
 **Parameters:**
 
 - `effect: (deps: MatchedDeps<K, Q, V>) => void | (() => void)`
 - `deps: readonly [Q]` - A single-element tuple wrapping the discriminated union value
 - `key: K` - The discriminant field to match on
-- `value: V` - The value `deps[0][key]` must equal for the effect to run
+- `value: V | readonly V[]` - A value or array of values to match against `deps[0][key]`; each value must belong to `Q[K]`
 - `options?: UseEffectWhenOptions<readonly [Q]>`
 
 **Example:**
@@ -407,6 +408,90 @@ function ProductAnalytics({ query }: ProductAnalyticsProps) {
   );
 }
 ```
+
+The array form is additive: existing single-value calls work unchanged. For example, using the same `ProductQuery` type:
+
+```tsx
+function ProductQueryObserver({ query }: ProductAnalyticsProps) {
+  useEffectWhenMatch(
+    ([result]) => {
+      if (result.status === "success") {
+        analytics.track("product_loaded", { productId: result.data.id });
+      } else {
+        analytics.track("product_failed", { message: result.error.message });
+      }
+    },
+    [query],
+    "status",
+    ["success", "error"],
+    { once: false }
+  );
+}
+```
+
+With `once: false`, the effect re-runs on each dependency change that matches, including a transition between two matched values. `onSkip` receives the full, unnarrowed dependency tuple when the dependency changes to a value outside the matched set, subject to the existing `once` semantics.
+
+An empty array never matches and narrows the effect's dependency to `never`.
+
+### `matchPredicate(key, value)`
+
+Creates a discriminant-matching type guard for one dependency. It uses the same single-value and readonly-array matching rules as `useEffectWhenMatch` and can be passed to `useEffectWhen` or `createEffectWhen`.
+
+**Parameters:**
+
+- `key: K` - The discriminant field to match on
+- `value: V | readonly V[]` - A value or array of values from `Q[K]`
+
+**Returns:**
+
+- `GuardPredicate<readonly [Q], MatchedDeps<K, Q, V>>`
+
+For standalone factory calls, provide the key type, complete discriminated union, and matched value type explicitly as `<K, Q, V>`. The key and values alone do not describe the other variants or their fields, so TypeScript cannot infer the complete union from them. `useEffectWhenMatch` can infer that union from its `deps` argument.
+
+**Example:**
+
+```tsx
+import { createEffectWhen, matchPredicate } from "@okyrychenko-dev/react-effect-when";
+
+type QueryPending = { status: "pending" };
+type QuerySuccess = { status: "success"; data: string };
+type QueryError = { status: "error"; error: Error };
+type Query = QueryPending | QuerySuccess | QueryError;
+
+// Match one variant.
+const useEffectWhenQuerySucceeded = createEffectWhen(
+  matchPredicate<"status", Query, "success">("status", "success")
+);
+
+// Match a union of variants.
+const useEffectWhenQuerySettled = createEffectWhen(
+  matchPredicate<"status", Query, "success" | "error">("status", ["success", "error"])
+);
+
+function QueryObserver({ query }: { query: Query }) {
+  useEffectWhenQuerySucceeded(
+    ([result]) => {
+      console.log(result.data); // QuerySuccess
+    },
+    [query]
+  );
+
+  useEffectWhenQuerySettled(
+    ([result]) => {
+      // QuerySuccess | QueryError
+      if (result.status === "success") {
+        console.log(result.data);
+      } else {
+        console.error(result.error);
+      }
+    },
+    [query],
+    { once: false }
+  );
+}
+```
+
+An empty value array never matches. Use `V = never` for a standalone empty-array predicate: `matchPredicate<"status", Query, never>("status", [])`.
 
 ### `createEffectWhen(predicate)`
 
