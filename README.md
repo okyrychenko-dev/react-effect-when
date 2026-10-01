@@ -385,8 +385,17 @@ This specialized API intentionally accepts one dependency. Use `useEffectWhen` w
 
 **Example:**
 
+The example includes a minimal product type and the application's analytics client shape.
+
+<!-- package-example: matching-hook-scalar -->
+
 ```tsx
 import { useEffectWhenMatch } from "@okyrychenko-dev/react-effect-when";
+
+type Product = { id: string };
+declare const analytics: {
+  track(event: string, properties: Record<string, string>): void;
+};
 
 type ProductQueryPending = { status: "pending" };
 type ProductQueryError = { status: "error"; error: Error };
@@ -409,7 +418,9 @@ function ProductAnalytics({ query }: ProductAnalyticsProps) {
 }
 ```
 
-The array form is additive: existing single-value calls work unchanged. For example, using the same `ProductQuery` type:
+The array form is additive: existing single-value calls work unchanged. The following example uses the imports, product/query types and analytics client declared in the preceding example:
+
+<!-- package-example: matching-hook-multiple -->
 
 ```tsx
 function ProductQueryObserver({ query }: ProductAnalyticsProps) {
@@ -449,6 +460,8 @@ Creates a discriminant-matching type guard for one dependency. It uses the same 
 For standalone factory calls, provide the key type, complete discriminated union, and matched value type explicitly as `<K, Q, V>`. The key and values alone do not describe the other variants or their fields, so TypeScript cannot infer the complete union from them. `useEffectWhenMatch` can infer that union from its `deps` argument.
 
 **Example:**
+
+<!-- package-example: matching-explicit -->
 
 ```tsx
 import { createEffectWhen, matchPredicate } from "@okyrychenko-dev/react-effect-when";
@@ -498,6 +511,8 @@ An empty value array never matches. Use `V = never` for a standalone empty-array
 Binds the complete source union once and returns a matching factory. Its key and selected value types are inferred from each call, so reusable hooks do not repeat selected variants in both type arguments and values. Existing `matchPredicate<K, Q, V>` calls remain supported.
 
 The source union still needs an explicit type: a key and selection cannot describe the fields of unselected variants. Binding it in a separate step lets TypeScript infer the later key and selection; defaulting the selected type in the existing factory would instead widen it to all source variants.
+
+<!-- package-example: matching-source-bound -->
 
 ```tsx
 import { createEffectWhen, matchPredicateFor, useEffectWhen } from "@okyrychenko-dev/react-effect-when";
@@ -887,24 +902,30 @@ public documentation for package usage.
 
 ## Development
 
+`format:check` includes linting. `package:check` builds the package, checks its packed files and runtime exports, compiles installed ESM/CommonJS consumers, and runs ATTW and publint.
+
+The packed checker also compiles the README examples marked `matching-explicit`, `matching-source-bound`, `matching-hook-scalar`, and `matching-hook-multiple`. The multi-value hook example uses the preceding scalar example's documented context. Their bodies and public imports are checked unchanged against both declaration adapters; missing or duplicate selection markers fail the check. These compilation checks supplement the dedicated exact-type and rejection fixtures. Other README snippets and example runtime execution are outside this check's scope. Temporary consumers and tarballs are removed on success and failure.
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm run typecheck
-pnpm run lint
 pnpm run format:check
 pnpm run test:run
 pnpm run test:coverage
-pnpm run build
-pnpm pack --pack-destination /tmp/react-effect-when-pack
+pnpm run package:check
 ```
+
+CI runs coverage tests on Node 22 and 24, uploads coverage on Node 22, and runs the packed contract on Node 22. Node 24 retains a separate build; Node 22 uses the build owned by `package:check`.
 
 ## Publish Checklist
 
-Before publishing a new version, make sure the combined release check passes:
+Before publishing a new version, make sure the combined release check passes. It cleans build output, runs the full tests, typechecks, checks lint/formatting and verifies the packed contract:
 
 ```bash
 pnpm run release:check
 ```
+
+`prepublishOnly` retains the same release gate for direct publication. The release workflow checks the tag against the package version before publishing with provenance; its detached tag checkout uses `--no-git-checks`. Both the explicit workflow gate and the publication lifecycle gate remain in place.
 
 ## License
 

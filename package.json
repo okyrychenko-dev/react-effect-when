@@ -57,7 +57,7 @@
     "package:check": "pnpm run build && node scripts/check-packed-package.mjs && attw --pack . && publint",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "release:check": "pnpm run clean && pnpm run test:run && pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run package:check",
+    "release:check": "pnpm run clean && pnpm run test:run && pnpm run typecheck && pnpm run format:check && pnpm run package:check",
     "prepublishOnly": "pnpm run release:check",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src scripts --ext .ts,.tsx,.mjs",
