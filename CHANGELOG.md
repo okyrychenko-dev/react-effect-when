@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-01
+
 ### Fixed
 
 - Preserve variants with broad scalar or overlapping union-valued discriminant fields when matching literals; reachable effects no longer narrow to `never`. Applies to both predicate factories, `useEffectWhenMatch`, and `MatchedDeps`, while empty selections still narrow to `never`.
@@ -16,8 +18,12 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Expanded packed ESM/CommonJS consumer checks to verify matching exports, exact narrowing, predicate composition, empty selections and invalid selections against both emitted declaration forms.
+- Selected README matching examples now compile unchanged against the packed ESM/CommonJS declarations; missing or duplicate example markers and invalid examples fail verification with contextual diagnostics.
 - Stabilized `useEffectWhenMatch` beyond its v1.3.0 prototype: it now accepts a single discriminant value or a readonly array and narrows the effect's dependency to the union of matched variants. Empty arrays never match and narrow to `never`; existing single-value calls and `once`/`onSkip` semantics remain unchanged.
 - Documented single-value and multi-value matching and reusable `matchPredicate` hooks in the README.
+- Migrated development, CI and release workflows to the pinned pnpm toolchain and frozen lockfile.
+- Added packed-file, runtime-export, declaration and package-metadata validation to CI and release checks, using installed consumers, ATTW and publint.
+- Removed redundant lint and Node 22 CI build requests while preserving coverage, independent verification commands and publication safeguards.
 
 ## [1.3.0] - 2026-08-16
 
