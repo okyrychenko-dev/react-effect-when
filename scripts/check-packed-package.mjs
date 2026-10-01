@@ -166,11 +166,11 @@ try {
   );
   writeFileSync(
     join(consumerRoot, "esm.mjs"),
-    `import { useEffectWhen } from "${PACKAGE_NAME}";\nif (typeof useEffectWhen !== "function") throw new Error("ESM export unavailable");\n`
+    `import { useEffectWhen, useEffectWhenMatch, matchPredicate, matchPredicateFor } from "${PACKAGE_NAME}";\nfor (const exported of [useEffectWhen, useEffectWhenMatch, matchPredicate, matchPredicateFor]) {\n  if (typeof exported !== "function") throw new Error("ESM matching export unavailable");\n}\n`
   );
   writeFileSync(
     join(consumerRoot, "cjs.cjs"),
-    `const { useEffectWhen } = require("${PACKAGE_NAME}");\nif (typeof useEffectWhen !== "function") throw new Error("CommonJS export unavailable");\n`
+    `const { useEffectWhen, useEffectWhenMatch, matchPredicate, matchPredicateFor } = require("${PACKAGE_NAME}");\nfor (const exported of [useEffectWhen, useEffectWhenMatch, matchPredicate, matchPredicateFor]) {\n  if (typeof exported !== "function") throw new Error("CommonJS matching export unavailable");\n}\n`
   );
 
   const typeConsumer = readFileSync(join(repositoryPath, "scripts/package-consumer.typecheck.ts"));

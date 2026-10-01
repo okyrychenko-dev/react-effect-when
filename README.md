@@ -493,6 +493,53 @@ function QueryObserver({ query }: { query: Query }) {
 
 An empty value array never matches. Use `V = never` for a standalone empty-array predicate: `matchPredicate<"status", Query, never>("status", [])`.
 
+### `matchPredicateFor<Q>()`
+
+Binds the complete source union once and returns a matching factory. Its key and selected value types are inferred from each call, so reusable hooks do not repeat selected variants in both type arguments and values. Existing `matchPredicate<K, Q, V>` calls remain supported.
+
+The source union still needs an explicit type: a key and selection cannot describe the fields of unselected variants. Binding it in a separate step lets TypeScript infer the later key and selection; defaulting the selected type in the existing factory would instead widen it to all source variants.
+
+```tsx
+import { createEffectWhen, matchPredicateFor, useEffectWhen } from "@okyrychenko-dev/react-effect-when";
+
+type QueryPending = { status: "pending" };
+type QuerySuccess = { status: "success"; data: string };
+type QueryError = { status: "error"; error: Error };
+type Query = QueryPending | QuerySuccess | QueryError;
+
+const matchQuery = matchPredicateFor<Query>();
+const matchesQuerySuccess = matchQuery("status", "success");
+const useQuerySucceeded = createEffectWhen(matchesQuerySuccess);
+const useQuerySettled = createEffectWhen(matchQuery("status", ["success", "error"]));
+// Empty selections infer never without a selected-value type argument.
+const useNoQuery = createEffectWhen(matchQuery("status", []));
+
+function QueryObserver({ query }: { query: Query }) {
+  useQuerySucceeded(([result]) => console.log(result.data), [query]);
+  useQuerySettled(
+    ([result]) => {
+      if (result.status === "success") {
+        console.log(result.data);
+      } else {
+        console.error(result.error);
+      }
+    },
+    [query],
+    { once: false }
+  );
+  useEffectWhen(
+    ([result]) => console.log(result.data),
+    [query],
+    matchesQuerySuccess
+  );
+  useNoQuery(() => {}, [query]); // Never runs.
+}
+```
+
+For base-hook composition, create a named predicate before passing it to `useEffectWhen`, as above. This lets TypeScript infer the selection before checking the effect callback.
+
+Only required fields shared by every source variant with string, number or symbol values can be selected as keys. Invalid scalar or array selections are compile errors. Readonly arrays are supported; empty selections never match. Scalar equality, array membership and `once`/cleanup/`onSkip` behavior match the existing factory. `onSkip` receives the complete source union.
+
 ### `createEffectWhen(predicate)`
 
 Creates a reusable hook with a baked-in predicate.
