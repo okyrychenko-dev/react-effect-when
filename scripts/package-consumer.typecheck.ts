@@ -189,3 +189,108 @@ interface ObjectStatus {
 matchPredicateFor<SuccessfulQuery | ObjectStatus>()("status", "success");
 // @ts-expect-error Every variant must require the discriminant field.
 matchPredicateFor<SuccessfulQuery | OptionalField>()("status", "success");
+
+interface BroadStringResult {
+  status: string;
+  data: string;
+}
+interface ClosedResult {
+  status: "closed";
+  reason: string;
+}
+interface BroadNumberResult {
+  code: number;
+  data: string;
+}
+interface NotFoundResult {
+  code: 404;
+  error: Error;
+}
+interface CombinedStates {
+  status: "success" | "error";
+  data: string;
+}
+interface BroadSymbolResult {
+  status: symbol;
+  data: string;
+}
+
+declare const broadString: BroadStringResult | ClosedResult;
+declare const broadNumber: BroadNumberResult | NotFoundResult;
+declare const combinedStates: CombinedStates;
+declare const broadSymbol: BroadSymbolResult;
+declare const selectedSymbol: unique symbol;
+const matchBroadString = matchPredicateFor<BroadStringResult | ClosedResult>();
+const matchBroadNumber = matchPredicateFor<BroadNumberResult | NotFoundResult>();
+const matchesBroadString = matchBroadString("status", "success");
+const matchesBroadNumber = matchBroadNumber("code", 200);
+const matchesBroadSymbol = matchPredicateFor<BroadSymbolResult>()("status", selectedSymbol);
+const useBroadSuccess = createEffectWhen(matchesBroadString);
+const useBroadNumbers = createEffectWhen(matchBroadNumber("code", [200, 201]));
+const useBroadClosed = createEffectWhen(matchBroadString("status", ["success", "closed"]));
+const useBroadNothing = createEffectWhen(matchBroadString("status", []));
+const matchesCombinedState = matchPredicateFor<CombinedStates>()("status", "success");
+const matchesExplicitBroadString = matchPredicate<
+  "status",
+  BroadStringResult | ClosedResult,
+  "success"
+>("status", "success");
+
+function useBroadMatchingTypes(): void {
+  useEffectWhen(
+    ([_result]) => assertType<Equal<typeof _result, BroadStringResult>>(true),
+    [broadString],
+    matchesBroadString
+  );
+  useBroadSuccess(
+    ([_result]) => assertType<Equal<typeof _result, BroadStringResult>>(true),
+    [broadString],
+    {
+      onSkip: (_deps) =>
+        assertType<Equal<typeof _deps, readonly [BroadStringResult | ClosedResult]>>(true),
+    }
+  );
+  useEffectWhenMatch(
+    ([_result]) => assertType<Equal<typeof _result, BroadStringResult>>(true),
+    [broadString],
+    "status",
+    "success"
+  );
+  useEffectWhen(
+    ([_result]) => assertType<Equal<typeof _result, BroadStringResult>>(true),
+    [broadString],
+    matchesExplicitBroadString
+  );
+  useEffectWhen(
+    ([_result]) => assertType<Equal<typeof _result, BroadNumberResult>>(true),
+    [broadNumber],
+    matchesBroadNumber
+  );
+  useBroadNumbers(
+    ([_result]) => assertType<Equal<typeof _result, BroadNumberResult>>(true),
+    [broadNumber]
+  );
+  useBroadClosed(
+    ([_result]) => assertType<Equal<typeof _result, BroadStringResult | ClosedResult>>(true),
+    [broadString]
+  );
+  useBroadNothing(([_result]) => assertType<Equal<typeof _result, never>>(true), [broadString]);
+  useEffectWhen(
+    ([_result]) => assertType<Equal<typeof _result, CombinedStates>>(true),
+    [combinedStates],
+    matchesCombinedState
+  );
+  useEffectWhen(
+    ([_result]) => assertType<Equal<typeof _result, BroadSymbolResult>>(true),
+    [broadSymbol],
+    matchesBroadSymbol
+  );
+}
+assertType<
+  Equal<MatchedDeps<"status", BroadStringResult, "success">, readonly [BroadStringResult]>
+>(true);
+assertType<Equal<MatchedDeps<"status", CombinedStates, "success">, readonly [CombinedStates]>>(
+  true
+);
+assertType<Equal<MatchedDeps<"status", BroadStringResult, readonly []>, readonly [never]>>(true);
+void useBroadMatchingTypes;

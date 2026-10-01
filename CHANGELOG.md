@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve variants with broad scalar or overlapping union-valued discriminant fields when matching literals; reachable effects no longer narrow to `never`. Applies to both predicate factories, `useEffectWhenMatch`, and `MatchedDeps`, while empty selections still narrow to `never`.
+
 ### Added
 
 - Added `matchPredicateFor<Q>()` to bind a source union once and infer discriminant keys and scalar, multi-value or empty selections without repeating selected types. Existing `matchPredicate<K, Q, V>` calls remain supported.

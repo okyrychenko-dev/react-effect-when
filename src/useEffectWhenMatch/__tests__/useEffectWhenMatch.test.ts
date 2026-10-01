@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { type PropsWithChildren, StrictMode, createElement } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { matchPredicateFor, useEffectWhenMatch } from "..";
+import { createEffectWhen } from "../../createEffectWhen";
 import { useEffectWhen } from "../../useEffectWhen";
 
 interface QueryData {
@@ -91,6 +92,52 @@ describe("useEffectWhenMatch", () => {
     renderHook(() => useEffectWhenMatch(effect, [result], "code", [Number.NaN]));
 
     expect(effect).toHaveBeenCalledWith([result]);
+  });
+
+  it("should preserve a broad string variant when a bound literal matches", () => {
+    interface BroadResult {
+      status: string;
+      data: string;
+    }
+    const matchesSuccess = matchPredicateFor<BroadResult>()("status", "success");
+    const result: BroadResult = { status: "success", data: "result" };
+    const effect = vi.fn();
+    renderHook(() =>
+      useEffectWhen(
+        ([matched]) => {
+          expectTypeOf(matched).toEqualTypeOf<BroadResult>();
+          effect(matched.data);
+        },
+        [result],
+        matchesSuccess
+      )
+    );
+    expect(effect).toHaveBeenCalledWith("result");
+  });
+
+  it("should preserve a broad numeric variant and exclude a disjoint literal", () => {
+    interface NumericSuccess {
+      code: number;
+      data: string;
+    }
+    interface NumericError {
+      code: 404;
+      error: Error;
+    }
+    type NumericResult = NumericSuccess | NumericError;
+    const useNumericSuccess = createEffectWhen(matchPredicateFor<NumericResult>()("code", 200));
+    const result: NumericResult = { code: 200, data: "result" };
+    const effect = vi.fn();
+    renderHook(() =>
+      useNumericSuccess(
+        ([matched]) => {
+          expectTypeOf(matched).toEqualTypeOf<NumericSuccess>();
+          effect(matched.data);
+        },
+        [result]
+      )
+    );
+    expect(effect).toHaveBeenCalledWith("result");
   });
 
   it("should preserve scalar equality and array membership in bound matching", () => {
