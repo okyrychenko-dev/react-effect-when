@@ -1,7 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { type PropsWithChildren, StrictMode, createElement } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { useEffectWhenMatch } from "../useEffectWhenMatch";
+import { matchPredicateFor, useEffectWhenMatch } from "..";
+import { useEffectWhen } from "../../useEffectWhen";
 
 interface QueryData {
   id: string;
@@ -90,6 +91,25 @@ describe("useEffectWhenMatch", () => {
     renderHook(() => useEffectWhenMatch(effect, [result], "code", [Number.NaN]));
 
     expect(effect).toHaveBeenCalledWith([result]);
+  });
+
+  it("should preserve scalar equality and array membership in bound matching", () => {
+    interface NumericResult {
+      code: number;
+    }
+
+    const matchNumber = matchPredicateFor<NumericResult>();
+    const scalarEffect = vi.fn();
+    const arrayEffect = vi.fn();
+    const result: NumericResult = { code: Number.NaN };
+
+    renderHook(() => {
+      useEffectWhen(scalarEffect, [result], matchNumber("code", Number.NaN));
+      useEffectWhen(arrayEffect, [result], matchNumber("code", [Number.NaN]));
+    });
+
+    expect(scalarEffect).not.toHaveBeenCalled();
+    expect(arrayEffect).toHaveBeenCalledWith([result]);
   });
 
   it("should not run when the field does not match", () => {
