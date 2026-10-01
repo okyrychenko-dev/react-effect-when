@@ -3,6 +3,7 @@ import type {
   Discriminant,
   DiscriminantKey,
   MatchedDeps,
+  MatchedVariant,
 } from "./useEffectWhenMatch.types";
 import type { GuardPredicate } from "../useEffectWhen";
 
@@ -39,8 +40,8 @@ export function matchPredicateFor<Q extends object>(): BoundMatchPredicate<Q> {
   return function matchSource<K extends DiscriminantKey<Q>, V extends Q[K] & PropertyKey>(
     key: K,
     value: V | ReadonlyArray<V>
-  ): GuardPredicate<readonly [Q], readonly [Extract<Q, Record<K, V>>]> {
-    return function matchesDiscriminant(deps): deps is readonly [Extract<Q, Record<K, V>>] {
+  ): GuardPredicate<readonly [Q], readonly [MatchedVariant<K, Q, V>]> {
+    return function matchesDiscriminant(deps): deps is readonly [MatchedVariant<K, Q, V>] {
       return matchesValue<Q[K]>(value, deps[0][key]);
     };
   };

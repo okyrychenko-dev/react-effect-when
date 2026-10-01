@@ -538,7 +538,7 @@ function QueryObserver({ query }: { query: Query }) {
 
 For base-hook composition, create a named predicate before passing it to `useEffectWhen`, as above. This lets TypeScript infer the selection before checking the effect callback.
 
-Only required fields shared by every source variant with string, number or symbol values can be selected as keys. Invalid scalar or array selections are compile errors. Readonly arrays are supported; empty selections never match. Scalar equality, array membership and `once`/cleanup/`onSkip` behavior match the existing factory. `onSkip` receives the complete source union.
+Only required fields shared by every source variant with string, number or symbol values can be selected as keys. Matching retains each variant whose field overlaps a selected value. Broad fields such as `status: string` or `code: number` remain in the matched type when a literal can match; the retained variant's field type is preserved. Invalid scalar or array selections are compile errors. Readonly arrays are supported; empty selections never match. Scalar equality, array membership and `once`/cleanup/`onSkip` behavior match the existing factory. `onSkip` receives the complete source union.
 
 ### `createEffectWhen(predicate)`
 
