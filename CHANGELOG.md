@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added the standalone `matchPredicate` factory for reusable discriminant guards, including composition with `createEffectWhen`. Standalone calls supply explicit `<K, Q, V>` types to preserve narrowing.
+
+### Changed
+
+- Stabilized `useEffectWhenMatch` beyond its v1.3.0 prototype: it now accepts a single discriminant value or a readonly array and narrows the effect's dependency to the union of matched variants. Empty arrays never match and narrow to `never`; existing single-value calls and `once`/`onSkip` semantics remain unchanged.
+- Documented single-value and multi-value matching and reusable `matchPredicate` hooks in the README.
+
 ## [1.3.0] - 2026-08-16
 
 ### Added
